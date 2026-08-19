@@ -59,20 +59,20 @@ Euclid는 얼불춤에서 선택한 언어를 자동으로 따릅니다.
 
 Currently included / 현재 포함된 언어:
 
-English
-한국어
-简体中文
-繁體中文
-日本語
-Français
-Deutsch
-Русский
-Română
-Polski
-Español
-Português (Brasil)
-Tiếng Việt
-Čeština
+- English
+- 한국어
+- 简体中文
+- 繁體中文
+- 日本語
+- Français
+- Deutsch
+- Русский
+- Română
+- Polski
+- Español
+- Português (Brasil)
+- Tiếng Việt
+- Čeština
 
 Missing translations fall back to English.  
 번역이 누락되면 영어로 대체됩니다.
