@@ -46,11 +46,12 @@ namespace Euclid
 
                 ev.disabled[key] = false;
 
-                // PositionTrack can rebuild every following floor when its offset is applied. While
-                // Euclid's position marker is being dragged, keep only the raw editor value live so
-                // the marker previews smoothly; PositionTrackFocusSync commits the real event once
-                // when the mouse is released.
-                var deferRealApply = PositionTrackFocusSync.ShouldDeferMarkerDragApply(ev, key);
+                // PositionTrack can rebuild every following floor when its offset is applied.
+                // During a Euclid marker drag, PositionTrackMarkerDragFocus gives the actual
+                // ADOFAI positionOffset input field focus. Keep only the raw value live while that
+                // field owns focus; releasing the marker deactivates the field and lets ADOFAI run
+                // its normal one-shot end-edit commit path.
+                var deferRealApply = PositionTrackMarkerDragFocus.ShouldDeferApply(ev, key);
                 if (!deferRealApply)
                 {
                     GameCompat.TryApplyPropertiesToRealEvents(ev);
