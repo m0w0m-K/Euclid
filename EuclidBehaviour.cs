@@ -28,6 +28,7 @@ namespace Euclid
         private EuclidPanel internalPanel;
         private object editorLevelIdentity;
         private object editorSettingsPanelIdentity;
+        private object editorFirstFloorIdentity;
         private string editorLevelPathKey;
         private bool editorMapReady;
         private bool editorWasLoading;
@@ -94,6 +95,7 @@ namespace Euclid
                 editorMapReady = false;
                 editorLevelIdentity = null;
                 editorSettingsPanelIdentity = null;
+                editorFirstFloorIdentity = null;
                 editorLevelPathKey = null;
                 return;
             }
@@ -106,6 +108,7 @@ namespace Euclid
                 editorMapReady = false;
                 editorLevelIdentity = null;
                 editorSettingsPanelIdentity = null;
+                editorFirstFloorIdentity = null;
                 editorLevelPathKey = null;
             }
 
@@ -128,11 +131,13 @@ namespace Euclid
                 editorMapReady = false;
                 editorLevelIdentity = null;
                 editorSettingsPanelIdentity = null;
+                editorFirstFloorIdentity = null;
                 editorLevelPathKey = null;
                 return;
             }
 
             var settingsPanel = GameCompat.GetSettingsPanel(editor);
+            var firstFloorIdentity = floors.Count > 0 ? (object)floors[0] : null;
             var pathKey = ResolveLevelPathKey(editor, levelData);
 
             if (!editorMapReady)
@@ -140,14 +145,28 @@ namespace Euclid
                 editorMapReady = true;
                 editorLevelIdentity = levelData;
                 editorSettingsPanelIdentity = settingsPanel;
+                editorFirstFloorIdentity = firstFloorIdentity;
                 editorLevelPathKey = pathKey;
                 return;
             }
 
+            var currentHasPath = !string.IsNullOrWhiteSpace(pathKey);
+            var previousHadPath = !string.IsNullOrWhiteSpace(editorLevelPathKey);
+            var firstFloorChanged = editorFirstFloorIdentity != null && firstFloorIdentity != null &&
+                                    !ReferenceEquals(editorFirstFloorIdentity, firstFloorIdentity);
+
             var changed = false;
-            if (!string.IsNullOrWhiteSpace(pathKey) && !string.IsNullOrWhiteSpace(editorLevelPathKey))
+            if (currentHasPath && previousHadPath)
             {
+                // Normal saved-map -> saved-map transition.
                 changed = !string.Equals(pathKey, editorLevelPathKey, StringComparison.OrdinalIgnoreCase);
+            }
+            else if (currentHasPath != previousHadPath && firstFloorChanged)
+            {
+                // A path appearing by itself can simply mean Save As on the same unsaved map.
+                // A path presence transition plus a rebuilt first floor means the editor actually
+                // switched maps (notably the initial unsaved map -> first opened saved map case).
+                changed = true;
             }
             else if (!ReferenceEquals(editorLevelIdentity, levelData))
             {
@@ -166,10 +185,10 @@ namespace Euclid
 
             editorLevelIdentity = levelData;
             editorSettingsPanelIdentity = settingsPanel;
-            if (!string.IsNullOrWhiteSpace(pathKey))
-            {
-                editorLevelPathKey = pathKey;
-            }
+            editorFirstFloorIdentity = firstFloorIdentity;
+            // Store the empty state too. Keeping an old non-empty path here would make a later
+            // unsaved/saved transition compare against the wrong map.
+            editorLevelPathKey = pathKey;
         }
 
         private void ResetEditorMapLocalState()
