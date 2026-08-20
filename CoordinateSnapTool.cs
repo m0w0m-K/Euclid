@@ -19,12 +19,12 @@ namespace Euclid
         private static string cachedTargetKey;
         private static double cachedGuideParameter;
 
-        // PositionTrack has two values that must not be conflated:
+        // PositionTrack relativeTo=ThisTile and FreeRoam both have two values that must not be conflated:
         //   raw positionOffset       = the value stored in the event
         //   effective positionOffset = raw while the property is enabled, otherwise zero
-        // ADOFAI can update either value before its floor transform catches up. Keep the last
-        // applied effective offset/floor here so pending edits and property on/off transitions can
-        // preview against a stable pre-event origin without moving the tile marker backwards.
+        // ADOFAI bakes that effective offset into the displayed host floor. It can also update the raw
+        // value before the floor transform catches up, so keep the last applied effective offset/floor
+        // here and preview against a stable pre-event origin instead of double-applying the offset.
         private const float PositionTrackSyncToleranceSqr = 0.0001f;
         private static bool hasPositionTrackReference;
         private static LevelEvent positionTrackReferenceEvent;
@@ -146,10 +146,9 @@ namespace Euclid
                     return false;
             }
 
-            // Use the exact same origin as the editable coordinate target. PositionTrack needs
-            // a pre-event origin rather than the already-repositioned floor transform; keeping
-            // both paths tied to CoordinateTarget prevents the marker and written offset from
-            // drifting apart.
+            // Use the exact same origin as the editable coordinate target. PositionTrack ThisTile
+            // and FreeRoam need a pre-event origin rather than the already-repositioned floor
+            // transform; keeping both paths tied to CoordinateTarget prevents double offsets.
             visual = new EffectOverlayVisual(kind, target.ReferenceWorld, target.WorldPoint, GetEffectDisplayName(ev));
             return true;
         }
@@ -553,7 +552,7 @@ namespace Euclid
 
             // Prefer the stored raw value. Typed/default fallbacks can be transient while ADOFAI is
             // rebuilding the inspector, so only a raw read is considered reliable for establishing
-            // a brand-new PositionTrack reference cache.
+            // a brand-new moving-floor reference cache.
             var offsetReliable = false;
             Vector2 rawOffsetTiles;
             if (LevelEventCompat.TryGetRaw(ev, "positionOffset", out var raw) &&
@@ -657,6 +656,11 @@ namespace Euclid
             return ev != null && ev.eventType == LevelEventType.PositionTrack;
         }
 
+        private static bool IsFreeRoam(LevelEvent ev)
+        {
+            return ev != null && string.Equals(ev.eventType.ToString(), "FreeRoam", StringComparison.Ordinal);
+        }
+
         private static Vector2 GetPositionOffsetReferencePoint(
             scnEditor editor,
             LevelEvent ev,
@@ -664,13 +668,16 @@ namespace Euclid
             float tileSize,
             bool offsetReliable)
         {
-            if (!IsPositionTrack(ev))
+            if (!IsPositionTrack(ev) && !IsFreeRoam(ev))
             {
                 return GetFloorPosition(editor, ev != null ? ev.floor : 0);
             }
 
             var eventFloor = ev != null ? ev.floor : 0;
-            var relativeTo = GetTileRelativeTo(ev);
+            // FreeRoam's positionOffset is always relative to the event's own host floor and ADOFAI
+            // moves that floor to the final position, which is equivalent to PositionTrack ThisTile
+            // for marker/reference purposes.
+            var relativeTo = IsPositionTrack(ev) ? GetTileRelativeTo(ev) : "ThisTile";
             var referenceFloor = eventFloor;
             switch (relativeTo)
             {
@@ -778,9 +785,9 @@ namespace Euclid
 
             if (!offsetChanged && floorChanged)
             {
-                // Earlier track/path movement changed the applied tile while this PositionTrack's
-                // effective state stayed the same. Follow that movement and remove only the active
-                // effective offset (zero when the property is disabled).
+                // Earlier track/path movement changed the applied host tile while this event's
+                // effective positionOffset stayed the same. Follow that movement and remove only
+                // the active effective offset (zero when the property is disabled).
                 SyncPositionTrackAppliedState(
                     ev,
                     referenceFloor,
