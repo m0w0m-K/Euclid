@@ -20,7 +20,7 @@ namespace Euclid
             }
 
             visuals.Clear();
-            if (!EuclidMod.ShowAllEffectMarkers)
+            if (!AllEffectMarkerSettings.Enabled)
             {
                 return;
             }
@@ -517,8 +517,6 @@ namespace Euclid
 
         private readonly struct CameraTimelineItem
         {
-            private const double TimeEpsilon = 0.000001d;
-
             internal CameraTimelineItem(LevelEvent ev, int index, double startTime)
             {
                 Event = ev;
