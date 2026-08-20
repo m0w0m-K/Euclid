@@ -1,30 +1,26 @@
 using System;
 using System.Collections.Generic;
 using ADOFAI;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Euclid
 {
     // Optional read-only layer for every unselected effect marker. The normal construction overlay
-    // keeps ownership of the selected marker so drag hit-testing and pending PositionTrack edits are
-    // unchanged. This layer sits one sorting order below that overlay and never receives raycasts.
+    // keeps ownership of the selected marker so drag hit-testing, labels and pending PositionTrack
+    // edits are unchanged. Background markers are intentionally label-free to stay cheap on maps
+    // with many effects.
     internal sealed class AllEffectMarkerOverlay : MonoBehaviour
     {
         private const string RootName = "Euclid_AllEffectMarkers";
         private const float RefreshInterval = 0.1f;
 
         private readonly List<EffectOverlayVisual> visuals = new List<EffectOverlayVisual>();
-        private readonly List<TextMeshProUGUI> labels = new List<TextMeshProUGUI>();
 
         private GameObject rootObject;
         private Canvas hostCanvas;
         private Canvas layerCanvas;
-        private RectTransform layerRect;
         private AllEffectMarkerGraphic graphic;
-        private TMP_FontAsset labelFont;
-        private Material labelMaterial;
         private float nextRefreshTime;
 
         internal static void Install()
@@ -40,7 +36,7 @@ namespace Euclid
 
         private void Update()
         {
-            if (!EuclidMod.Enabled || !AllEffectMarkerSettings.Enabled)
+            if (!EuclidMod.Enabled || !EuclidMod.ShowOverlay || !AllEffectMarkerSettings.Enabled)
             {
                 SetVisible(false);
                 return;
@@ -61,7 +57,7 @@ namespace Euclid
                 return;
             }
 
-            Ensure(canvas, panel);
+            Ensure(canvas);
             SetVisible(true);
 
             if (Time.unscaledTime < nextRefreshTime)
@@ -70,7 +66,9 @@ namespace Euclid
             }
 
             nextRefreshTime = Time.unscaledTime + RefreshInterval;
-            RefreshNow();
+            EffectOverlayCollection.CollectBackground(visuals);
+            graphic.SetSource(visuals);
+            graphic.SetVerticesDirty();
         }
 
         private void OnDisable()
@@ -83,23 +81,20 @@ namespace Euclid
             DestroyLayer();
         }
 
-        private void Ensure(Canvas canvas, InspectorPanel panel)
+        private void Ensure(Canvas canvas)
         {
             if (rootObject != null && hostCanvas == canvas && layerCanvas != null && graphic != null)
             {
                 UpdateSorting();
-                CaptureLabelStyle(panel);
                 return;
             }
 
             DestroyLayer();
             hostCanvas = canvas;
-            CaptureLabelStyle(panel);
 
             rootObject = new GameObject(RootName, typeof(RectTransform), typeof(Canvas));
             rootObject.transform.SetParent(hostCanvas.transform, false);
-            layerRect = rootObject.GetComponent<RectTransform>();
-            Stretch(layerRect);
+            Stretch(rootObject.GetComponent<RectTransform>());
 
             layerCanvas = rootObject.GetComponent<Canvas>();
             layerCanvas.overrideSorting = true;
@@ -112,8 +107,7 @@ namespace Euclid
                 typeof(CanvasRenderer),
                 typeof(AllEffectMarkerGraphic));
             geometryObject.transform.SetParent(rootObject.transform, false);
-            var geometryRect = geometryObject.GetComponent<RectTransform>();
-            Stretch(geometryRect);
+            Stretch(geometryObject.GetComponent<RectTransform>());
 
             graphic = geometryObject.GetComponent<AllEffectMarkerGraphic>();
             graphic.raycastTarget = false;
@@ -121,107 +115,6 @@ namespace Euclid
             graphic.SetSource(visuals);
 
             rootObject.SetActive(true);
-        }
-
-        private void RefreshNow()
-        {
-            if (graphic == null || rootObject == null)
-            {
-                return;
-            }
-
-            EffectOverlayCollection.CollectBackground(visuals);
-            graphic.SetSource(visuals);
-            graphic.SetVerticesDirty();
-            SyncLabels();
-        }
-
-        private void SyncLabels()
-        {
-            var camera = GetEditorCamera();
-            if (camera == null || layerRect == null)
-            {
-                HideLabelsFrom(0);
-                return;
-            }
-
-            var labelIndex = 0;
-            for (var i = 0; i < visuals.Count; i++)
-            {
-                var visual = visuals[i];
-                if (!TryWorldToLocal(camera, visual.TargetWorld, out var point))
-                {
-                    continue;
-                }
-
-                var text = GetOrCreateLabel(labelIndex++);
-                text.gameObject.SetActive(true);
-                text.text = visual.Label;
-                var color = EuclidMod.GetEffectOverlayColors(visual.Kind).Label;
-                color.a *= 0.62f;
-                text.color = color;
-                text.rectTransform.anchoredPosition = point + new Vector2(8f, 20f);
-            }
-
-            HideLabelsFrom(labelIndex);
-        }
-
-        private TextMeshProUGUI GetOrCreateLabel(int index)
-        {
-            while (labels.Count <= index)
-            {
-                var obj = new GameObject(
-                    "Effect Label",
-                    typeof(RectTransform),
-                    typeof(CanvasRenderer),
-                    typeof(TextMeshProUGUI));
-                obj.transform.SetParent(rootObject.transform, false);
-
-                var rect = obj.GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(0.5f, 0.5f);
-                rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0f, 0.5f);
-                rect.sizeDelta = new Vector2(120f, 24f);
-
-                var text = obj.GetComponent<TextMeshProUGUI>();
-                text.raycastTarget = false;
-                text.alignment = TextAlignmentOptions.MidlineLeft;
-                text.fontSize = 14f;
-                text.textWrappingMode = TextWrappingModes.NoWrap;
-                text.overflowMode = TextOverflowModes.Overflow;
-                labels.Add(text);
-            }
-
-            var label = labels[index];
-            if (labelFont != null)
-            {
-                label.font = labelFont;
-            }
-            if (labelMaterial != null)
-            {
-                label.fontMaterial = labelMaterial;
-            }
-            return label;
-        }
-
-        private void HideLabelsFrom(int startIndex)
-        {
-            for (var i = startIndex; i < labels.Count; i++)
-            {
-                if (labels[i] != null)
-                {
-                    labels[i].gameObject.SetActive(false);
-                }
-            }
-        }
-
-        private void CaptureLabelStyle(InspectorPanel panel)
-        {
-            if (panel != null && panel.title != null)
-            {
-                labelFont = panel.title.font;
-                labelMaterial = panel.title.fontMaterial;
-            }
         }
 
         private void UpdateSorting()
@@ -239,7 +132,7 @@ namespace Euclid
 
             layerCanvas.overrideSorting = true;
             layerCanvas.sortingLayerID = sortingReference.sortingLayerID;
-            // ConstructionShapeCanvasOverlay uses host - 1. Keep unselected markers underneath it.
+            // The normal selected/construction overlay uses host - 1, so background effects stay below it.
             layerCanvas.sortingOrder = sortingReference.sortingOrder - 2;
         }
 
@@ -261,12 +154,8 @@ namespace Euclid
             rootObject = null;
             hostCanvas = null;
             layerCanvas = null;
-            layerRect = null;
             graphic = null;
-            labels.Clear();
             visuals.Clear();
-            labelFont = null;
-            labelMaterial = null;
         }
 
         private static InspectorPanel ResolveInspectorPanel(scnEditor editor)
@@ -295,37 +184,6 @@ namespace Euclid
             }
 
             return null;
-        }
-
-        private bool TryWorldToLocal(Camera camera, Vector2 world, out Vector2 localPoint)
-        {
-            localPoint = Vector2.zero;
-            if (camera == null || layerRect == null)
-            {
-                return false;
-            }
-
-            var screen = camera.WorldToScreenPoint(new Vector3(world.x, world.y, 0f));
-            if (screen.z < 0f)
-            {
-                return false;
-            }
-
-            var rootCanvas = layerCanvas != null ? layerCanvas.rootCanvas : null;
-            var uiCamera = rootCanvas != null && rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? (layerCanvas.worldCamera != null ? layerCanvas.worldCamera : rootCanvas.worldCamera)
-                : null;
-            return RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                layerRect,
-                new Vector2(screen.x, screen.y),
-                uiCamera,
-                out localPoint);
-        }
-
-        private static Camera GetEditorCamera()
-        {
-            var editorCamera = GameCompat.GetEditorCamera(scnEditor.instance);
-            return editorCamera != null ? editorCamera : Camera.main;
         }
 
         private static void Stretch(RectTransform rect)
