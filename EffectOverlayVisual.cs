@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Euclid
@@ -22,10 +23,15 @@ namespace Euclid
             Vector2 targetWorld,
             string label)
         {
-            Kind = kind;
+            var resolvedLabel = label ?? string.Empty;
+            var resolvedKind = ResolveKind(kind, resolvedLabel);
+
+            Kind = resolvedKind;
             ReferenceWorld = referenceWorld;
             TargetWorld = targetWorld;
-            Label = label ?? string.Empty;
+            Label = resolvedKind == EffectOverlayKind.DecorationMove
+                ? GetDecorationMoveLabel()
+                : resolvedLabel;
             IsValid = true;
         }
 
@@ -34,6 +40,53 @@ namespace Euclid
         internal Vector2 ReferenceWorld { get; }
         internal Vector2 TargetWorld { get; }
         internal string Label { get; }
+
+        private static EffectOverlayKind ResolveKind(EffectOverlayKind kind, string label)
+        {
+            if (kind != EffectOverlayKind.TrackMove)
+            {
+                return kind;
+            }
+
+            // The all-effect overlay currently passes the raw event type as its label, so the
+            // unfocused decoration case can be identified without any editor lookup.
+            if (string.Equals(label, "MoveDecorations", StringComparison.OrdinalIgnoreCase))
+            {
+                return EffectOverlayKind.DecorationMove;
+            }
+
+            // The focused overlay historically grouped MoveDecorations under the localized
+            // MoveTrack label. Resolve that one ambiguous foreground case from the selected event.
+            if (!string.Equals(label, EuclidText.Get("effect.moveTrack"), StringComparison.Ordinal))
+            {
+                return kind;
+            }
+
+            try
+            {
+                var editor = scnEditor.instance;
+                var panel = GameCompat.GetLevelEventsPanel(editor);
+                var selectedEvent = GameCompat.GetSelectedEvent(panel);
+                if (selectedEvent != null &&
+                    string.Equals(selectedEvent.eventType.ToString(), "MoveDecorations", StringComparison.Ordinal))
+                {
+                    return EffectOverlayKind.DecorationMove;
+                }
+            }
+            catch (Exception)
+            {
+                // Keep the original TrackMove kind when the editor is rebuilding.
+            }
+
+            return kind;
+        }
+
+        private static string GetDecorationMoveLabel()
+        {
+            return string.Equals(EuclidText.CurrentLocaleCode, "ko", StringComparison.OrdinalIgnoreCase)
+                ? "장식 이동"
+                : "Move Decorations";
+        }
     }
 
     internal readonly struct EffectOverlayColors
