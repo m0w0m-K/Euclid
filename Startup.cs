@@ -8,6 +8,7 @@ namespace Euclid
         {
             EuclidMod.Load(modEntry);
             EditorLevelLoadPatch.Install();
+            EuclidPanel.InstallPointPickToggle();
             AllEffectMarkerSettings.Install(modEntry);
             PositionTrackFocusSync.Install();
             PositionTrackMarkerDragFocus.Install();
