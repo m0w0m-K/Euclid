@@ -29,6 +29,11 @@ namespace Euclid
                     return false;
                 }
 
+                // Snap/immediate edits need the already-applied PositionTrack origin from BEFORE
+                // the raw offset is replaced. Otherwise the next drag can interpret the snap delta
+                // as a change of the tile/reference origin and move that marker in the opposite direction.
+                var positionTrackBaseline = PositionTrackAppliedSync.CaptureBeforeEdit(ev, key);
+
                 if (saveUndoState)
                 {
                     TrySaveState(editor);
@@ -54,7 +59,17 @@ namespace Euclid
                 var deferRealApply = PositionTrackMarkerDragFocus.ShouldDeferApply(ev, key);
                 if (!deferRealApply)
                 {
-                    GameCompat.TryApplyPropertiesToRealEvents(ev);
+                    var applied = GameCompat.TryApplyPropertiesToRealEvents(ev);
+                    if (applied)
+                    {
+                        // A direct snap bypasses the focused-input transition observed by
+                        // PositionTrackFocusSync, so synchronize the marker cache explicitly.
+                        PositionTrackAppliedSync.NotifyImmediateApply(
+                            ev,
+                            key,
+                            value,
+                            positionTrackBaseline);
+                    }
                 }
 
                 MarkUnsaved(editor);
