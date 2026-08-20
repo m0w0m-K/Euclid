@@ -323,9 +323,12 @@ namespace Euclid
             Vector2 referenceWorld;
             Vector2 targetWorld;
 
-            if (eventName == "PositionTrack")
+            if (eventName == "PositionTrack" || eventName == "FreeRoam")
             {
-                var relativeTo = GetTileRelativeTo(ev);
+                // PositionTrack relativeTo=ThisTile and FreeRoam both bake positionOffset into the
+                // displayed host tile. For those cases the displayed floor is already the target;
+                // recover the pre-effect reference by subtracting only the effective offset.
+                var relativeTo = eventName == "PositionTrack" ? GetTileRelativeTo(ev) : "ThisTile";
                 var referenceFloor = ev.floor;
                 switch (relativeTo)
                 {
@@ -342,7 +345,6 @@ namespace Euclid
                 var displayedFloorWorld = GetFloorPosition(editor, referenceFloor);
                 if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Unfocused PositionTrack values are already applied to the displayed floor.
                     targetWorld = displayedFloorWorld;
                     referenceWorld = displayedFloorWorld - offsetTiles * tileSize;
                 }
