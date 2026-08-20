@@ -231,11 +231,13 @@ namespace Euclid
                 return;
             }
 
+            // The Pick button in AddShapePointEditor is created at 64 px. Create Pin at the
+            // same final size immediately instead of starting at 52 px and correcting it later.
             pinText = AddButton(
                 row,
                 PointPinLabel(),
                 () => TogglePointPin(shape, pointIndex),
-                52f,
+                64f,
                 ButtonSurface.Outline);
 
             if (pinText != null && pinText.transform.parent != null)
