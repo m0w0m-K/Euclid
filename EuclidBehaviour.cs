@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using UnityEngine;
 
 namespace Euclid
@@ -8,6 +9,9 @@ namespace Euclid
     // tile-selection sync), but feature state and UI construction belong in the tool/panel files.
     internal sealed class EuclidBehaviour : MonoBehaviour
     {
+        private const BindingFlags StaticMemberFlags =
+            BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
         private static readonly string[] LevelPathMemberNames =
         {
             "levelPath",
@@ -75,9 +79,9 @@ namespace Euclid
         {
             var editor = scnEditor.instance;
 
-            // scnEditor.isLoading is the authoritative level-load boundary in current ADOFAI.
-            // A new map can reuse the same scnEditor, LevelData and inspector objects while the old
-            // floors are still present, so object/path identity alone can miss the transition.
+            // scnEditor.isLoading is useful when the game exposes a visible load interval, but some
+            // editor load paths can complete between Euclid Update calls. Keep it as an early reset
+            // signal rather than the sole authority for map identity.
             var loading = editor != null && GameCompat.IsEditorLoading(editor);
             if (loading)
             {
@@ -112,9 +116,8 @@ namespace Euclid
                 levelData != null;
             var ready = editor != null && hasLevelData && floors.Count > 0;
 
-            // Fallback for game versions where isLoading is absent or where a teardown makes the
-            // editor temporarily unavailable. This also prevents carrying map-local state through a
-            // full editor destruction/recreation.
+            // Fallback for teardown/recreation. This prevents carrying map-local state through a
+            // full editor destruction even if no path information is available yet.
             if (!ready)
             {
                 if (editorMapReady)
@@ -173,9 +176,9 @@ namespace Euclid
         {
             GuideLineTool.SnapSelectedShapeDrag = false;
 
-            // Clear the model immediately, then dirty the existing Canvas graphic immediately as
-            // well. Clearing only ConstructionShapeTool leaves the previous mesh/labels cached until
-            // some unrelated overlay refresh occurs, which looks exactly like the shapes survived.
+            // Clear both the model and the already-built UI/overlay state. A new map may reuse the
+            // same editor and inspector objects, so waiting for those objects to be recreated is not
+            // sufficient to invalidate construction shapes.
             ConstructionShapeTool.ClearAll();
             ConstructionShapeCanvasOverlay.Refresh();
 
@@ -187,6 +190,15 @@ namespace Euclid
 
         private static string ResolveLevelPathKey(scnEditor editor, object levelData)
         {
+            // ADOFAI stores the authoritative opened-file path on ADOBase.levelPath. It is a static
+            // inherited member, so the ordinary instance-only compatibility lookup cannot see it.
+            // Walk the scnEditor type hierarchy explicitly before using weaker instance fallbacks.
+            var globalPath = TryGetStaticPathLikeMember(typeof(scnEditor), "levelPath");
+            if (!string.IsNullOrWhiteSpace(globalPath))
+            {
+                return globalPath;
+            }
+
             var fromEditor = TryGetPathLikeMember(editor);
             if (!string.IsNullOrWhiteSpace(fromEditor))
             {
@@ -194,6 +206,46 @@ namespace Euclid
             }
 
             return TryGetPathLikeMember(levelData);
+        }
+
+        private static string TryGetStaticPathLikeMember(Type startType, string name)
+        {
+            if (startType == null || string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            for (var type = startType; type != null; type = type.BaseType)
+            {
+                try
+                {
+                    var property = type.GetProperty(name, StaticMemberFlags);
+                    if (property != null)
+                    {
+                        var value = property.GetValue(null, null) as string;
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return value.Trim();
+                        }
+                    }
+
+                    var field = type.GetField(name, StaticMemberFlags);
+                    if (field != null)
+                    {
+                        var value = field.GetValue(null) as string;
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return value.Trim();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Continue up the hierarchy; instance fallbacks still exist below.
+                }
+            }
+
+            return null;
         }
 
         private static string TryGetPathLikeMember(object target)
