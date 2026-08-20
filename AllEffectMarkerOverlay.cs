@@ -39,7 +39,7 @@ namespace Euclid
 
         private void Update()
         {
-            if (!EuclidMod.Enabled || !EuclidMod.ShowAllEffectMarkers)
+            if (!EuclidMod.Enabled || !AllEffectMarkerSettings.Enabled)
             {
                 SetVisible(false);
                 return;
@@ -357,7 +357,7 @@ namespace Euclid
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            if (visuals == null || visuals.Count == 0 || !EuclidMod.ShowAllEffectMarkers)
+            if (visuals == null || visuals.Count == 0 || !AllEffectMarkerSettings.Enabled)
             {
                 return;
             }
