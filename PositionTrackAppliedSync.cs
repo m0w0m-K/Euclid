@@ -1,26 +1,16 @@
 using System;
 using System.Collections;
-using System.Reflection;
 using ADOFAI;
 using UnityEngine;
 
 namespace Euclid
 {
-    // Keeps CoordinateSnapTool's PositionTrack cache coherent when Euclid performs an immediate
-    // programmatic edit such as Snap. Marker dragging is deliberately excluded: that path is
-    // deferred through the real ADOFAI input-field focus lifecycle instead.
+    // Compatibility fallback for ADOFAI builds where Euclid cannot commit PositionTrack through the
+    // real inspector input. The normal paths are PositionTrackMarkerDragFocus and
+    // PositionTrackSnapCommitSync; this class only keeps the marker model coherent after a direct
+    // ApplyPropertiesToRealEvents call.
     internal static class PositionTrackAppliedSync
     {
-        private static readonly Type CoordinateSnapType = typeof(CoordinateSnapTool);
-        private static readonly FieldInfo HasReferenceField = GetField("hasPositionTrackReference");
-        private static readonly FieldInfo ReferenceEventField = GetField("positionTrackReferenceEvent");
-        private static readonly FieldInfo ReferenceFloorField = GetField("positionTrackReferenceFloor");
-        private static readonly FieldInfo ReferenceTileSizeField = GetField("positionTrackReferenceTileSize");
-        private static readonly FieldInfo ZeroReferenceField = GetField("positionTrackZeroReference");
-        private static readonly FieldInfo AppliedOffsetField = GetField("positionTrackAppliedOffsetTiles");
-        private static readonly FieldInfo AppliedFloorField = GetField("positionTrackAppliedFloorWorld");
-        private static readonly FieldInfo ReferenceProvisionalField = GetField("positionTrackReferenceProvisional");
-
         internal readonly struct Baseline
         {
             internal Baseline(bool valid, int floor, float tileSize, Vector2 zeroReference)
@@ -40,7 +30,7 @@ namespace Euclid
         internal static Baseline CaptureBeforeEdit(LevelEvent ev, string key)
         {
             if (!IsSupported(ev, key) || !IsThisTileRelative(ev) ||
-                !TryGetPositionOffset(ev, out var oldOffset))
+                !TryGetPositionOffset(ev, out var oldRawOffset))
             {
                 return default;
             }
@@ -52,7 +42,10 @@ namespace Euclid
             }
 
             var tileSize = Mathf.Max(GameCompat.GetTileSize(), 0.000001f);
-            var zeroReference = floorWorld - oldOffset * tileSize;
+            var oldEffectiveOffset = LevelEventCompat.IsPropertyEnabled(ev, "positionOffset")
+                ? oldRawOffset
+                : Vector2.zero;
+            var zeroReference = floorWorld - oldEffectiveOffset * tileSize;
             return new Baseline(true, ev.floor, tileSize, zeroReference);
         }
 
@@ -73,16 +66,15 @@ namespace Euclid
                 return;
             }
 
-            // Snapshot the transform exactly as it exists after ApplyPropertiesToRealEvents.
-            // If ADOFAI completes the floor move one frame later, keeping this snapshot as the
-            // applied-floor baseline prevents CoordinateSnapTool from treating the new raw offset
-            // as an unexplained movement. The normal floor-change branch will reconcile it later.
+            // CameraFrameEditor enables the property before this fallback runs, so newOffset is the
+            // new effective offset. If the host moves the floor one frame later, the normal
+            // CoordinateSnapTool floor-change path will reconcile the final transform then.
             if (!TryGetFloorWorld(editor, baseline.Floor, out var appliedFloorWorld))
             {
                 appliedFloorWorld = baseline.ZeroReference + newOffset * baseline.TileSize;
             }
 
-            ForceCoordinateCache(
+            CoordinateSnapTool.SyncPositionTrackAppliedState(
                 ev,
                 baseline.Floor,
                 baseline.TileSize,
@@ -218,44 +210,6 @@ namespace Euclid
             }
 
             return false;
-        }
-
-        private static void ForceCoordinateCache(
-            LevelEvent ev,
-            int floor,
-            float tileSize,
-            Vector2 zeroReference,
-            Vector2 appliedOffset,
-            Vector2 appliedFloorWorld)
-        {
-            if (HasReferenceField == null || ReferenceEventField == null ||
-                ReferenceFloorField == null || ReferenceTileSizeField == null ||
-                ZeroReferenceField == null || AppliedOffsetField == null ||
-                AppliedFloorField == null || ReferenceProvisionalField == null)
-            {
-                return;
-            }
-
-            try
-            {
-                ReferenceEventField.SetValue(null, ev);
-                ReferenceFloorField.SetValue(null, floor);
-                ReferenceTileSizeField.SetValue(null, tileSize);
-                ZeroReferenceField.SetValue(null, zeroReference);
-                AppliedOffsetField.SetValue(null, appliedOffset);
-                AppliedFloorField.SetValue(null, appliedFloorWorld);
-                ReferenceProvisionalField.SetValue(null, false);
-                HasReferenceField.SetValue(null, true);
-            }
-            catch (Exception)
-            {
-                // Keep the edit working even if a future game/mod build renames the private cache.
-            }
-        }
-
-        private static FieldInfo GetField(string name)
-        {
-            return CoordinateSnapType.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
         }
     }
 }
