@@ -875,16 +875,16 @@ namespace Euclid
 
             internal static CoordinateTarget ForTileUnitEventProperty(LevelEvent ev, string key, Vector2 value, float tileSize)
             {
-                var safeTileSize = tileSize <= 0.000001f ? 1f : tileSize;
+                var scale = Mathf.Max(tileSize, 0.000001f);
                 return new CoordinateTarget(
                     default,
                     ev,
                     key,
-                    value * safeTileSize,
+                    value * scale,
                     camera: false,
-                    tileOffset: false,
+                    tileOffset: true,
                     referencePoint: Vector2.zero,
-                    tileSize: safeTileSize,
+                    tileSize: scale,
                     label: null);
             }
 
@@ -896,36 +896,34 @@ namespace Euclid
                 Vector2 offsetTiles,
                 string label)
             {
-                var safeTileSize = tileSize <= 0.000001f ? 1f : tileSize;
                 return new CoordinateTarget(
                     default,
                     ev,
                     key,
-                    referencePoint + offsetTiles * safeTileSize,
+                    referencePoint + offsetTiles * Mathf.Max(tileSize, 0.000001f),
                     camera: false,
                     tileOffset: true,
                     referencePoint: referencePoint,
-                    tileSize: safeTileSize,
+                    tileSize: tileSize,
                     label: label);
             }
 
-            internal bool TrySetWorldPoint(Vector2d world, bool saveUndoState)
+            internal bool TrySetWorldPoint(Vector2d value, bool saveUndoState)
             {
                 if (camera)
                 {
-                    return CameraFrameEditor.TryMoveCenter(cameraFrame, world.ToVector2(), saveUndoState);
+                    return CameraFrameEditor.TryMoveCenter(cameraFrame, value.ToVector2(), saveUndoState);
                 }
 
-                if (ev == null || string.IsNullOrWhiteSpace(key))
+                if (tileOffset)
                 {
-                    return false;
+                    var offsetTiles = new Vector2(
+                        (float)((value.X - referencePoint.x) / tileSize),
+                        (float)((value.Y - referencePoint.y) / tileSize));
+                    return CameraFrameEditor.TrySetVectorProperty(ev, key, offsetTiles, saveUndoState);
                 }
 
-                var worldPoint = world.ToVector2();
-                var value = tileOffset
-                    ? (worldPoint - referencePoint) / tileSize
-                    : worldPoint / tileSize;
-                return CameraFrameEditor.TrySetVectorProperty(ev, key, value, saveUndoState);
+                return CameraFrameEditor.TrySetVectorProperty(ev, key, value.ToVector2(), saveUndoState);
             }
         }
     }
