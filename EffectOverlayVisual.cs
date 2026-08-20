@@ -11,6 +11,7 @@ namespace Euclid
         TrackMove,
         TrackPosition,
         FreeRoam,
+        DecorationMove,
     }
 
     internal readonly struct EffectOverlayVisual
