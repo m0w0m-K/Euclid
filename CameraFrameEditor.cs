@@ -29,9 +29,9 @@ namespace Euclid
                     return false;
                 }
 
-                // Snap/immediate edits need the already-applied PositionTrack origin from BEFORE
-                // the raw offset is replaced. Otherwise the next drag can interpret the snap delta
-                // as a change of the tile/reference origin and move that marker in the opposite direction.
+                // Only used by the manual fallback. The preferred PositionTrack snap path below
+                // commits through ADOFAI's real input-focus lifecycle and lets PositionTrackFocusSync
+                // derive its own applied baseline from the actual floor movement.
                 var positionTrackBaseline = PositionTrackAppliedSync.CaptureBeforeEdit(ev, key);
 
                 if (saveUndoState)
@@ -52,18 +52,38 @@ namespace Euclid
                 ev.disabled[key] = false;
 
                 // PositionTrack can rebuild every following floor when its offset is applied.
-                // During a Euclid marker drag, PositionTrackMarkerDragFocus gives the actual
-                // ADOFAI positionOffset input field focus. Keep only the raw value live while that
-                // field owns focus; releasing the marker deactivates the field and lets ADOFAI run
-                // its normal one-shot end-edit commit path.
+                // During a scene-marker drag the real inspector input stays focused, so only the raw
+                // value should change. Releasing the marker commits once through ADOFAI's end-edit.
                 var deferRealApply = PositionTrackMarkerDragFocus.ShouldDeferApply(ev, key);
-                if (!deferRealApply)
+                var commitThroughInspectorFocus = false;
+
+                if (!deferRealApply &&
+                    ev.eventType == LevelEventType.PositionTrack &&
+                    string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase))
+                {
+                    // A programmatic snap used to call ApplyPropertiesToRealEvents directly. That
+                    // updates the event but can miss the host editor's complete PositionTrack floor
+                    // rebuild. Put the new value into the real inspector control, focus it for one
+                    // frame, then let PositionTrackSnapCommitSync release it normally.
+                    try
+                    {
+                        GameCompat.TryUpdatePropertyText(editor, ev, key);
+                    }
+                    catch (Exception)
+                    {
+                        // If the inspector text cannot be synchronized, fall back below.
+                    }
+
+                    commitThroughInspectorFocus = PositionTrackSnapCommitSync.TryScheduleImmediateCommit(ev, key);
+                }
+
+                if (!deferRealApply && !commitThroughInspectorFocus)
                 {
                     var applied = GameCompat.TryApplyPropertiesToRealEvents(ev);
                     if (applied)
                     {
-                        // A direct snap bypasses the focused-input transition observed by
-                        // PositionTrackFocusSync, so synchronize the marker cache explicitly.
+                        // Compatibility fallback for builds where the real positionOffset input could
+                        // not be resolved. Normal snaps should not use this path anymore.
                         PositionTrackAppliedSync.NotifyImmediateApply(
                             ev,
                             key,
@@ -73,6 +93,15 @@ namespace Euclid
                 }
 
                 MarkUnsaved(editor);
+
+                if (commitThroughInspectorFocus)
+                {
+                    // Refreshing the whole event panel here would destroy/recreate the exact input
+                    // that now owns focus. Its text was already synchronized above; ADOFAI will
+                    // refresh the panel itself when end-edit commits on the next frame.
+                    return true;
+                }
+
                 RefreshInspectorProperty(editor, ev, key, refreshPanel: saveUndoState && !deferRealApply);
                 return true;
             }
