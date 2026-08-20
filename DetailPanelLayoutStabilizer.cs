@@ -3,10 +3,14 @@ using UnityEngine.UI;
 
 namespace Euclid
 {
-    // The Shape Info hierarchy is rebuilt immediately when the shape type changes. Unity's layout
-    // system otherwise gets one render opportunity with the freshly-created children in an
-    // intermediate size before ContentSizeFitter/LayoutGroups settle. Normalize the conflicting
-    // height rules and force the complete detail-panel layout in LateUpdate, before canvas render.
+    // Shape Info is rebuilt when the selected shape/type changes. Its rows mix flexible controls
+    // with explicitly fixed-width/fixed-height controls. Unity's default force-expand flags can
+    // temporarily ignore those fixed LayoutElements during the first layout pass, which is why a
+    // fixed button or slider handle visibly stretches for one frame and then snaps back.
+    //
+    // Run after normal scripts, remove that force-expand conflict, finish the layout immediately,
+    // then re-assert the Slider handle rect after Slider/LayoutGroup have done their own rebuild.
+    [DefaultExecutionOrder(20000)]
     internal sealed class DetailPanelLayoutStabilizer : MonoBehaviour
     {
         private const string DetailPanelName = "Euclid_DetailPanel";
@@ -17,7 +21,6 @@ namespace Euclid
 
         private GameObject detailPanel;
         private RectTransform detailContent;
-        private int lastHierarchySignature;
 
         internal static void Install()
         {
@@ -43,26 +46,18 @@ namespace Euclid
                 return;
             }
 
-            var signature = ComputeHierarchySignature(detailContent);
-            if (signature == lastHierarchySignature)
-            {
-                return;
-            }
-
-            lastHierarchySignature = signature;
-            NormalizeRowsAndSliders(detailContent);
-            ForceStableLayout();
+            StabilizeCurrentPanel();
         }
 
         private bool ResolvePanel()
         {
-            if (detailPanel != null && detailContent != null)
+            if (detailPanel != null && detailContent != null && detailPanel.activeInHierarchy)
             {
-                return detailPanel.activeInHierarchy;
+                return true;
             }
 
             detailPanel = GameObject.Find(DetailPanelName);
-            if (detailPanel == null)
+            if (detailPanel == null || !detailPanel.activeInHierarchy)
             {
                 detailContent = null;
                 return false;
@@ -76,44 +71,20 @@ namespace Euclid
                 return false;
             }
 
-            lastHierarchySignature = 0;
-            return detailPanel.activeInHierarchy;
+            return true;
         }
 
-        private static int ComputeHierarchySignature(RectTransform root)
+        private void StabilizeCurrentPanel()
         {
-            if (root == null)
-            {
-                return 0;
-            }
-
-            unchecked
-            {
-                var hash = 17;
-                hash = hash * 31 + root.childCount;
-                for (var i = 0; i < root.childCount; i++)
-                {
-                    var child = root.GetChild(i);
-                    hash = hash * 31 + (child != null ? child.GetInstanceID() : 0);
-                    if (child != null)
-                    {
-                        hash = hash * 31 + child.childCount;
-                    }
-                }
-                return hash;
-            }
-        }
-
-        private static void NormalizeRowsAndSliders(RectTransform content)
-        {
-            if (content == null)
+            if (detailPanel == null || detailContent == null)
             {
                 return;
             }
 
-            // Every detail row already carries an explicit LayoutElement height. Let that preferred
-            // height win instead of stretching children to a transient parent height during rebuild.
-            var horizontalLayouts = content.GetComponentsInChildren<HorizontalLayoutGroup>(true);
+            // In Shape Info, width=0 controls already opt into flexibleWidth=1. Fixed controls have
+            // flexibleWidth=0. Therefore force-expanding every child is both unnecessary and the
+            // reason fixed buttons briefly become the same size as flexible buttons after rebuild.
+            var horizontalLayouts = detailPanel.GetComponentsInChildren<HorizontalLayoutGroup>(true);
             for (var i = 0; i < horizontalLayouts.Length; i++)
             {
                 var layout = horizontalLayouts[i];
@@ -122,11 +93,13 @@ namespace Euclid
                     continue;
                 }
 
+                layout.childControlWidth = true;
+                layout.childForceExpandWidth = false;
                 layout.childControlHeight = true;
                 layout.childForceExpandHeight = false;
             }
 
-            var sliders = content.GetComponentsInChildren<Slider>(true);
+            var sliders = detailPanel.GetComponentsInChildren<Slider>(true);
             for (var i = 0; i < sliders.Length; i++)
             {
                 var slider = sliders[i];
@@ -139,33 +112,10 @@ namespace Euclid
                 element.minHeight = SliderHeight;
                 element.preferredHeight = SliderHeight;
                 element.flexibleHeight = 0f;
-
-                var handle = slider.handleRect;
-                if (handle == null)
-                {
-                    continue;
-                }
-
-                // Keep the handle slightly taller than before while making its vertical anchors
-                // explicit, so Slider's own horizontal anchor updates cannot temporarily stretch it.
-                var min = handle.anchorMin;
-                var max = handle.anchorMax;
-                min.y = 0.5f;
-                max.y = 0.5f;
-                handle.anchorMin = min;
-                handle.anchorMax = max;
-                handle.pivot = new Vector2(handle.pivot.x, 0.5f);
-                handle.sizeDelta = new Vector2(SliderHandleWidth, SliderHandleHeight);
-            }
-        }
-
-        private void ForceStableLayout()
-        {
-            if (detailContent == null || detailPanel == null)
-            {
-                return;
             }
 
+            // Finish all parent/ContentSizeFitter calculations now instead of allowing a transient
+            // hierarchy size to survive until Unity's next frame.
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(detailContent);
 
@@ -175,18 +125,36 @@ namespace Euclid
                 LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);
             }
 
-            // ContentSizeFitter can update its own RectTransform during the first forced pass.
-            // Run the content once more using that final size so no intermediate frame is rendered.
             Canvas.ForceUpdateCanvases();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(detailContent);
-            Canvas.ForceUpdateCanvases();
+
+            // Slider.UpdateVisuals can rewrite handle anchors during the forced pass above. Set the
+            // final vertical geometry last, with no further forced layout after this point. This also
+            // makes the requested handle a little taller than the original 8 px version.
+            for (var i = 0; i < sliders.Length; i++)
+            {
+                var slider = sliders[i];
+                var handle = slider != null ? slider.handleRect : null;
+                if (handle == null)
+                {
+                    continue;
+                }
+
+                var min = handle.anchorMin;
+                var max = handle.anchorMax;
+                min.y = 0.5f;
+                max.y = 0.5f;
+                handle.anchorMin = min;
+                handle.anchorMax = max;
+                handle.pivot = new Vector2(handle.pivot.x, 0.5f);
+                handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, SliderHandleWidth);
+                handle.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, SliderHandleHeight);
+            }
         }
 
         private void ResetCachedPanel()
         {
             detailPanel = null;
             detailContent = null;
-            lastHierarchySignature = 0;
         }
     }
 }
