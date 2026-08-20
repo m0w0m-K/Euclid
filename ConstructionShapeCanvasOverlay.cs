@@ -420,6 +420,11 @@ namespace Euclid
             // The four colors are independently configurable per effect in UMM Options.
             AddLine(vh, reference, target, colors.Segment, 2f);
             AddDiamond(vh, reference, colors.TileMarker, 7f, 1.8f);
+
+            // The editable position marker is one composite marker. Keep its center diamond and
+            // corner reticle on the exact same target coordinate so asynchronous PositionTrack
+            // application can never make the two visual pieces appear detached.
+            AddDiamond(vh, target, colors.PositionMarker, 5.5f, 1.6f);
             AddCornerReticle(vh, target, colors.PositionMarker, 10f, 4.5f, 2f);
 
             if (visual.Kind != EffectOverlayKind.CameraMove &&
@@ -431,9 +436,9 @@ namespace Euclid
                 previewColor.a *= 0.72f;
                 AddDashedLine(vh, fromLocal, toLocal, previewColor, 1.65f, 9f, 6f);
 
-                var snapColor = colors.PositionMarker;
-                snapColor.a = Mathf.Clamp01(snapColor.a);
-                AddDiamond(vh, toLocal, snapColor, 8f, 1.8f);
+                // The dashed line itself communicates the snap destination. Do not draw another
+                // position-colored diamond there; that used to look like the center of the main
+                // position marker had separated from its corner reticle.
             }
         }
 

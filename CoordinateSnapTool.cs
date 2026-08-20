@@ -19,6 +19,18 @@ namespace Euclid
         private static string cachedTargetKey;
         private static double cachedGuideParameter;
 
+        // PositionTrack updates positionOffset before ADOFAI necessarily reapplies the floor
+        // transform. Keep the zero-offset origin stable while raw inspector/drag values are ahead
+        // of the displayed tile, then resynchronize once the floor catches up.
+        private const float PositionTrackSyncToleranceSqr = 0.0001f;
+        private static bool hasPositionTrackReference;
+        private static LevelEvent positionTrackReferenceEvent;
+        private static int positionTrackReferenceFloor;
+        private static float positionTrackReferenceTileSize;
+        private static Vector2 positionTrackZeroReference;
+        private static Vector2 positionTrackAppliedOffsetTiles;
+        private static Vector2 positionTrackAppliedFloorWorld;
+
         internal static string DescribeTarget(CameraFrameSnapshot cameraFrame, string requestedKey)
         {
             if (TryGetCameraTarget(cameraFrame, out _))
@@ -637,19 +649,85 @@ namespace Euclid
                     break;
             }
 
-            var reference = GetFloorPosition(editor, referenceFloor);
-
-            // For ThisTile, the visible floor transform is the already-positioned tile. The tile
-            // marker must represent where that tile would be at positionOffset = (0, 0), while the
-            // position marker must land on the tile's current visible position. Subtracting the raw
-            // offset here and adding it back in CoordinateTarget therefore gives exactly those two
-            // endpoints.
-            if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
+            var displayedFloorWorld = GetFloorPosition(editor, referenceFloor);
+            if (!string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
             {
-                reference -= offsetTiles * Mathf.Max(tileSize, 0.000001f);
+                if (ReferenceEquals(positionTrackReferenceEvent, ev))
+                {
+                    hasPositionTrackReference = false;
+                }
+                return displayedFloorWorld;
             }
 
-            return reference;
+            return GetStablePositionTrackThisTileReference(
+                ev,
+                referenceFloor,
+                displayedFloorWorld,
+                offsetTiles,
+                tileSize);
+        }
+
+        private static Vector2 GetStablePositionTrackThisTileReference(
+            LevelEvent ev,
+            int referenceFloor,
+            Vector2 displayedFloorWorld,
+            Vector2 rawOffsetTiles,
+            float tileSize)
+        {
+            var scale = Mathf.Max(tileSize, 0.000001f);
+            var cacheMatches = hasPositionTrackReference &&
+                ReferenceEquals(positionTrackReferenceEvent, ev) &&
+                positionTrackReferenceFloor == referenceFloor &&
+                Mathf.Abs(positionTrackReferenceTileSize - scale) <= 0.000001f;
+
+            if (!cacheMatches)
+            {
+                hasPositionTrackReference = true;
+                positionTrackReferenceEvent = ev;
+                positionTrackReferenceFloor = referenceFloor;
+                positionTrackReferenceTileSize = scale;
+                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
+                positionTrackAppliedOffsetTiles = rawOffsetTiles;
+                positionTrackAppliedFloorWorld = displayedFloorWorld;
+                return positionTrackZeroReference;
+            }
+
+            // The target represented by the current raw positionOffset according to the stable
+            // zero-origin. This is where Euclid's position marker must be even if ADOFAI has not
+            // moved the actual floor transform yet.
+            var expectedDisplayedForRaw = positionTrackZeroReference + rawOffsetTiles * scale;
+            var transformMatchesRaw =
+                (displayedFloorWorld - expectedDisplayedForRaw).sqrMagnitude <= PositionTrackSyncToleranceSqr;
+
+            if (transformMatchesRaw)
+            {
+                // ADOFAI has applied the current offset (for example after the inspector loses
+                // focus). The zero-origin stays fixed; only the applied pair advances.
+                positionTrackAppliedOffsetTiles = rawOffsetTiles;
+                positionTrackAppliedFloorWorld = displayedFloorWorld;
+                return positionTrackZeroReference;
+            }
+
+            var hasPendingRawOffset =
+                (rawOffsetTiles - positionTrackAppliedOffsetTiles).sqrMagnitude > 0.00000001f;
+            if (hasPendingRawOffset)
+            {
+                // The raw value already changed, but the displayed floor is still at the old applied
+                // position. Do NOT recompute the origin from this mixed state. Otherwise a drag to
+                // a new point would immediately collapse back onto the old tile position.
+                return positionTrackZeroReference;
+            }
+
+            // The raw offset did not change but the floor did. Treat this as an underlying path
+            // movement and translate the zero-origin by exactly the same world delta.
+            var floorDelta = displayedFloorWorld - positionTrackAppliedFloorWorld;
+            if (floorDelta.sqrMagnitude > PositionTrackSyncToleranceSqr)
+            {
+                positionTrackZeroReference += floorDelta;
+                positionTrackAppliedFloorWorld = displayedFloorWorld;
+            }
+
+            return positionTrackZeroReference;
         }
 
         private static string GetTileRelativeTo(LevelEvent ev)
@@ -712,9 +790,8 @@ namespace Euclid
             {
                 var floors = GameCompat.GetFloors(editor);
 
-                // LevelEvent.floor is a floor/seqID value, not a reliable List index after editor
-                // insertions/rebuilds. Resolve the actual floor by seqID first so PositionTrack's
-                // zero-offset tile marker and current-position marker are anchored to the same tile.
+                // LevelEvent.floor is a floor/seqID value. Resolve by seqID first; treating it as
+                // a List index can anchor PositionTrack to a different tile after insert/rebuild.
                 for (var i = 0; i < floors.Count; i++)
                 {
                     var candidate = floors[i];
@@ -725,8 +802,7 @@ namespace Euclid
                     }
                 }
 
-                // Keep index lookup only as a compatibility fallback for editor states where the
-                // requested value is known to be a list position (for example some Start/End paths).
+                // Compatibility fallback for code paths that intentionally pass a list position.
                 if (floor >= 0 && floor < floors.Count && floors[floor] != null)
                 {
                     var position = floors[floor].transform.position;
