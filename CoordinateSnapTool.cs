@@ -21,8 +21,7 @@ namespace Euclid
 
         // PositionTrack updates positionOffset before ADOFAI necessarily reapplies the floor
         // transform. Keep the zero-offset origin stable while raw inspector/drag values are ahead
-        // of the displayed tile, then re-derive that origin from the actual tile transform as soon
-        // as ADOFAI applies/rebuilds the track.
+        // of the displayed tile, then resynchronize once the floor catches up.
         private const float PositionTrackSyncToleranceSqr = 0.0001f;
         private static bool hasPositionTrackReference;
         private static LevelEvent positionTrackReferenceEvent;
@@ -693,10 +692,9 @@ namespace Euclid
                 positionTrackAppliedOffsetTiles = rawOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
 
-                // Some editor refreshes expose a temporary zero positionOffset for one frame when
-                // a PositionTrack is selected. If the real non-zero value appears immediately
-                // afterwards without the tile moving, allow one rebase before treating later raw
-                // changes as pending edits.
+                // The inspector can briefly expose (0, 0) immediately after selecting an event
+                // before its real positionOffset is available. Allow exactly one raw-only rebase
+                // in that initial state; later raw-only changes are real pending edits.
                 positionTrackReferenceProvisional = rawOffsetTiles.sqrMagnitude <= 0.00000001f;
                 return positionTrackZeroReference;
             }
@@ -708,9 +706,8 @@ namespace Euclid
 
             if (positionTrackReferenceProvisional && rawChanged && !floorChanged)
             {
-                // Late event-data synchronization after selection: the visible tile already sits at
-                // the applied position, but the first sample temporarily reported (0, 0). Rebase
-                // once from the now-valid raw offset so the tile marker does not remain on the tile.
+                // Late synchronization after selecting PositionTrack. The tile is already at the
+                // applied position, so use the first real offset to establish the true zero origin.
                 positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
                 positionTrackAppliedOffsetTiles = rawOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
@@ -718,27 +715,34 @@ namespace Euclid
                 return positionTrackZeroReference;
             }
 
-            // Once we have observed a normal non-zero sample, later raw-only changes are genuine
-            // pending editor/Euclid edits. Keep the origin fixed until ADOFAI moves the floor.
-            if (!rawChanged)
+            if (rawChanged && !floorChanged)
             {
+                // positionOffset changed first, but ADOFAI has not moved the floor yet. The target
+                // marker must move immediately while its absolute zero-origin remains unchanged.
                 positionTrackReferenceProvisional = false;
-            }
-
-            if (!floorChanged)
-            {
                 return positionTrackZeroReference;
             }
 
-            // The actual floor transform changed. This is the authoritative signal that ADOFAI has
-            // applied the pending PositionTrack value (typically when the inspector field loses
-            // focus) or rebuilt the path. Re-derive the zero-offset origin from the real tile and
-            // current raw offset instead of carrying the old floor delta forward. That guarantees:
-            //   tile marker     = displayed tile - offset
-            //   position marker = tile marker + offset = displayed tile
-            positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-            positionTrackAppliedOffsetTiles = rawOffsetTiles;
-            positionTrackAppliedFloorWorld = displayedFloorWorld;
+            if (rawChanged && floorChanged)
+            {
+                // ADOFAI has now applied the pending PositionTrack value (typically on focus loss).
+                // Do NOT rebase the zero-origin from the newly moved tile: doing so moves Euclid's
+                // marker a second time. Advance only the applied-state snapshot so the absolute
+                // marker coordinates before and after focus loss are identical.
+                positionTrackAppliedOffsetTiles = rawOffsetTiles;
+                positionTrackAppliedFloorWorld = displayedFloorWorld;
+                positionTrackReferenceProvisional = false;
+                return positionTrackZeroReference;
+            }
+
+            if (!rawChanged && floorChanged)
+            {
+                // The event offset itself did not change, so this is an underlying path/tile move
+                // rather than deferred PositionTrack application. Follow that external movement.
+                positionTrackZeroReference += displayedFloorWorld - positionTrackAppliedFloorWorld;
+                positionTrackAppliedFloorWorld = displayedFloorWorld;
+            }
+
             positionTrackReferenceProvisional = false;
             return positionTrackZeroReference;
         }
