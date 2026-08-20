@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using ADOFAI;
@@ -21,12 +22,13 @@ namespace Euclid
 
             if (TryGetData(ev, out var data) && data.TryGetValue(key, out value))
             {
+                value = NormalizeKnownRawValue(key, value);
                 return true;
             }
 
             try
             {
-                value = ev[key];
+                value = NormalizeKnownRawValue(key, ev[key]);
                 return value != null;
             }
             catch (Exception)
@@ -91,6 +93,57 @@ namespace Euclid
                 data[key] = value;
                 return true;
             }
+        }
+
+        private static object NormalizeKnownRawValue(string key, object value)
+        {
+            if (!string.Equals(key, "relativeTo", StringComparison.OrdinalIgnoreCase) || value == null)
+            {
+                return value;
+            }
+
+            // ADOFAI 3.3.0 can store tile-relative enum values in a serialized wrapper such as
+            // [0, "ThisTile"]. Feature code expects the semantic enum/string, not the wrapper.
+            if (value is IList list && list.Count > 0)
+            {
+                if (list.Count >= 2 && list[1] != null)
+                {
+                    return list[1];
+                }
+
+                return list[0];
+            }
+
+            // Also tolerate Tuple/ValueTuple-like wrappers without depending on their generic types.
+            try
+            {
+                var type = value.GetType();
+                var item2Property = type.GetProperty("Item2", BindingFlags.Instance | BindingFlags.Public);
+                if (item2Property != null)
+                {
+                    var item2 = item2Property.GetValue(value, null);
+                    if (item2 != null)
+                    {
+                        return item2;
+                    }
+                }
+
+                var item2Field = type.GetField("Item2", BindingFlags.Instance | BindingFlags.Public);
+                if (item2Field != null)
+                {
+                    var item2 = item2Field.GetValue(value);
+                    if (item2 != null)
+                    {
+                        return item2;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Leave unknown representations untouched so existing fallbacks can handle them.
+            }
+
+            return value;
         }
 
         private static bool TryGetData(LevelEvent ev, out Dictionary<string, object> data)
