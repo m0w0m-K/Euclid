@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Euclid-Editor-Tab anzeigen
+gui.showFrame	Ausgewählten Kamerabewegungs-Rahmen anzeigen
+settings.showCameraFrame	Kamerarahmen anzeigen
+settings.cameraFrameColor	Farbe des Kamerarahmens
+settings.effectMarkerColor	Farbe der Effektmarkierungen
+settings.tileMarkerColor	Kachelpositionsmarkierung
+settings.positionMarkerColor	Positionsmarkierung
+settings.segmentColor	Versatzlinie
+settings.effectNameColor	Effektname
+settings.colorHint	Farbe: RRGGBB oder RRGGBBAA
+gui.selectTiles	Wähle im Leveleditor mindestens zwei Kacheln aus.
+gui.usesFirstLast	Das Werkzeug verwendet die zuerst und zuletzt ausgewählte Kachel.
+panel.measure	Messen
+panel.guideLine	Konstruktionsmodus
+panel.circle	Kreis
+panel.euclid	Euklid
+panel.constructionList	Formen
+panel.shapeInfo	Forminformationen
+button.showGuide	Hilfslinie anzeigen
+button.snapDrag	Kameraziehen an Hilfslinie einrasten
+button.dragCenter	Ausgewähltes Kamerazentrum ziehen
+button.selectedLine	Gerade
+button.perpendicular	Mittelsenkrechte
+button.apply	Gerade anwenden
+button.clear	Löschen
+button.auto	Auto
+button.minusStep	- Schritt
+button.snap	Einrasten
+button.plusStep	+ Schritt
+button.saveLine1	1 speichern
+button.saveLine2	2 speichern
+button.snapIntersection	Am Schnittpunkt einrasten
+button.selectedCircle	Kreis aus Kacheln
+button.applyCircle	Kreis anwenden
+button.clearCircle	Kreis löschen
+button.addShape	Hinzufügen
+button.deleteShape	Löschen
+button.createIntersections	Schnittpunkte erzeugen
+button.useSelectedTile	Auswählen
+button.pickPosition	Auswählen
+button.visibleOn	AN
+button.visibleOff	AUS
+label.target	Ziel
+label.key	Taste
+label.step	Schritt
+label.anchor	Anker
+label.direction	Richtung
+label.center	Mittelpunkt
+label.radius	Radius
+label.shapeName	Name
+label.shapeType	Typ
+label.shapeColor	Farbe
+label.inputMode	Eingabebasis
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Kachel
+source.tile	Kachel {0}
+source.shapePoint	Punkt #{0}
+source.manual	Manuelle Eingabe
+mode.tile	Kachelbasis
+mode.coordinate	Koordinatenbasis
+shape.point	Punkt
+shape.line	Gerade
+shape.perpendicular	Mittelsenkrechte
+shape.circle	Kreis
+message.noGuide	Keine Hilfslinie.
+message.noShapes	Keine Formen.
+message.openEditor	Öffne den Leveleditor.
+message.selectTwoTiles	Wähle mindestens zwei Kacheln aus.
+message.selectOneMoreTile	Wähle eine weitere Kachel aus.
+message.measureFailed	Erfassung fehlgeschlagen. UMM-Protokolle prüfen.
+message.editorPlayback	Während der Editorwiedergabe ausgeblendet.
+message.selectMoveCamera	Wähle ein Kamerabewegungs-Ereignis aus.
+message.cameraFrameFailed	Kamerarahmen konnte nicht erfasst werden. UMM-Protokolle prüfen.
+message.lineThroughTiles	Gerade durch Kacheln {0}->{1}
+message.perpendicularAtMidpoint	Senkrechte im Mittelpunkt von {0}->{1}
+message.invalidLine	Ungültiger Anker- oder Richtungswert.
+message.customGuide	Benutzerdefinierte Hilfslinie.
+message.zeroDirection	Die Richtung darf nicht null sein.
+message.invalidCircle	Ungültiger Kreiswert.
+message.invalidCircleRadius	Der Radius muss größer als null sein.
+message.customCircle	Benutzerdefinierter Kreis.
+message.circleFromTiles	Kreis mit Mittelpunkt {0} durch {1}.
+message.noCircle	Kreis gelöscht.
+message.guideInactive	Die Hilfslinie ist nicht aktiv.
+message.updateFailed	Ausgewählte Koordinate konnte nicht aktualisiert werden.
+message.snapped	{0} an Hilfslinie eingerastet.
+message.snappedIntersection	{0} am Schnittpunkt eingerastet.
+message.moved	{0} um {1:0.#####} entlang der Hilfslinie verschoben.
+message.savedLine1	Aktuelle Hilfslinie in Slot 1 gespeichert.
+message.savedLine2	Aktuelle Hilfslinie in Slot 2 gespeichert.
+message.needTwoSavedLines	Speichere zuerst zwei Hilfslinien.
+message.parallelLines	Die gespeicherten Hilfslinien schneiden sich nicht.
+message.selectCoordinateEvent	Wähle ein Ereignis mit einer Vector2-Koordinate aus.
+message.selectPositionOffsetEvent	Wähle ein Ereignis mit positionOffset aus.
+message.selectSingleShape	Wähle genau eine Form aus.
+message.noVectorCoordinate	{0} besitzt keine Vector2-Koordinateneigenschaft.
+message.snappedToShape	{0} an Form eingerastet.
+message.shapeSnapOn	Form-Einrasten an.
+message.shapeSnapOff	Form-Einrasten aus.
+message.movedToShape	{0} verschoben.
+target.camera	Ziel: Kamerabewegung
+target.none	Ziel: kein fokussiertes Ereignis
+target.label	Ziel: {0}
+target.noVector	Ziel: {0} besitzt keine Vector2-Eigenschaft
+target.property	Ziel: {0}.{1}
+effect.moveCamera	Kamerabewegung
+effect.moveTrack	Spurbewegung
+effect.positionTrack	Spurposition
+effect.freeRoam	Freier Bewegungsbereich
+effect.freeRoamRemove	Freie Bewegung entfernen
+measure.tiles	Kacheln
+measure.distance	Abstand
+measure.midpoint	Mittelpunkt
+measure.fromTile	Von Kachel {0}
+measure.midpointFromTile	Mittelpunkt von {0}
+measure.relative	Relative Position
+measure.tileToTile	{0}->{1}
+measure.angle	Winkel
+measure.delta	Delta
+overlay.playerProxy	Spielerreferenz

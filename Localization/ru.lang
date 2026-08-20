@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Показывать вкладку Euclid в редакторе
+gui.showFrame	Показать выбранную рамку движения камеры
+settings.showCameraFrame	Показывать рамку камеры
+settings.cameraFrameColor	Цвет рамки камеры
+settings.effectMarkerColor	Цвет маркера эффекта
+settings.tileMarkerColor	Маркер позиции плитки
+settings.positionMarkerColor	Маркер позиции
+settings.segmentColor	Линия смещения
+settings.effectNameColor	Название эффекта
+settings.colorHint	Цвет: RRGGBB или RRGGBBAA
+gui.selectTiles	Выберите в редакторе уровня две или более плитки.
+gui.usesFirstLast	Инструмент использует первую и последнюю выбранные плитки.
+panel.measure	Измерение
+panel.guideLine	Режим построения
+panel.circle	Окружность
+panel.euclid	Евклид
+panel.constructionList	Фигуры
+panel.shapeInfo	Сведения о фигуре
+button.showGuide	Показать направляющую
+button.snapDrag	Привязать перетаскивание камеры к направляющей
+button.dragCenter	Перетащить центр выбранной камеры
+button.selectedLine	Прямая
+button.perpendicular	Серединный перпендикуляр
+button.apply	Применить прямую
+button.clear	Очистить
+button.auto	Авто
+button.minusStep	- Шаг
+button.snap	Привязать
+button.plusStep	+ Шаг
+button.saveLine1	Сохранить 1
+button.saveLine2	Сохранить 2
+button.snapIntersection	Привязать к пересечению
+button.selectedCircle	Окружность по плиткам
+button.applyCircle	Применить окружность
+button.clearCircle	Очистить окружность
+button.addShape	Добавить
+button.deleteShape	Удалить
+button.createIntersections	Создать пересечения
+button.useSelectedTile	Выбрать
+button.pickPosition	Выбрать
+button.visibleOn	ВКЛ
+button.visibleOff	ВЫКЛ
+label.target	Цель
+label.key	Клавиша
+label.step	Шаг
+label.anchor	Опорная точка
+label.direction	Направление
+label.center	Центр
+label.radius	Радиус
+label.shapeName	Имя
+label.shapeType	Тип
+label.shapeColor	Цвет
+label.inputMode	База ввода
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Плитка
+source.tile	Плитка {0}
+source.shapePoint	Точка #{0}
+source.manual	Ручной ввод
+mode.tile	По плитке
+mode.coordinate	По координатам
+shape.point	Точка
+shape.line	Прямая
+shape.perpendicular	Серединный перпендикуляр
+shape.circle	Окружность
+message.noGuide	Нет направляющей.
+message.noShapes	Нет фигур.
+message.openEditor	Откройте редактор уровня.
+message.selectTwoTiles	Выберите как минимум две плитки.
+message.selectOneMoreTile	Выберите ещё одну плитку.
+message.measureFailed	Не удалось получить данные. Проверьте журналы UMM.
+message.editorPlayback	Скрыто во время воспроизведения в редакторе.
+message.selectMoveCamera	Выберите событие движения камеры.
+message.cameraFrameFailed	Не удалось получить рамку камеры. Проверьте журналы UMM.
+message.lineThroughTiles	Прямая через плитки {0}->{1}
+message.perpendicularAtMidpoint	Перпендикуляр в середине {0}->{1}
+message.invalidLine	Недопустимое значение опорной точки или направления.
+message.customGuide	Пользовательская направляющая.
+message.zeroDirection	Направление не может быть нулевым.
+message.invalidCircle	Недопустимые параметры окружности.
+message.invalidCircleRadius	Радиус должен быть больше нуля.
+message.customCircle	Пользовательская окружность.
+message.circleFromTiles	Окружность с центром в {0}, проходящая через {1}.
+message.noCircle	Окружность очищена.
+message.guideInactive	Направляющая не активна.
+message.updateFailed	Не удалось обновить выбранную координату.
+message.snapped	{0} привязано к направляющей.
+message.snappedIntersection	{0} привязано к пересечению.
+message.moved	{0} перемещено на {1:0.#####} вдоль направляющей.
+message.savedLine1	Текущая направляющая сохранена в слот 1.
+message.savedLine2	Текущая направляющая сохранена в слот 2.
+message.needTwoSavedLines	Сначала сохраните две направляющие.
+message.parallelLines	Сохранённые направляющие не пересекаются.
+message.selectCoordinateEvent	Выберите событие с координатой Vector2.
+message.selectPositionOffsetEvent	Выберите событие с positionOffset.
+message.selectSingleShape	Выберите ровно одну фигуру.
+message.noVectorCoordinate	У {0} нет свойства координат Vector2.
+message.snappedToShape	{0} привязано к фигуре.
+message.shapeSnapOn	Привязка к фигурам включена.
+message.shapeSnapOff	Привязка к фигурам выключена.
+message.movedToShape	{0} перемещено.
+target.camera	Цель: движение камеры
+target.none	Цель: нет активного события
+target.label	Цель: {0}
+target.noVector	Цель: у {0} нет свойства Vector2
+target.property	Цель: {0}.{1}
+effect.moveCamera	Движение камеры
+effect.moveTrack	Движение пути
+effect.positionTrack	Положение пути
+effect.freeRoam	Область свободного движения
+effect.freeRoamRemove	Удалить свободное движение
+measure.tiles	Плитки
+measure.distance	Расстояние
+measure.midpoint	Середина
+measure.fromTile	От плитки {0}
+measure.midpointFromTile	Середина относительно {0}
+measure.relative	Относительная позиция
+measure.tileToTile	{0}->{1}
+measure.angle	Угол
+measure.delta	Изменение
+overlay.playerProxy	Опора на игрока

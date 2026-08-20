@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Afficher l’onglet Euclid de l’éditeur
+gui.showFrame	Afficher le cadre Déplacement caméra sélectionné
+settings.showCameraFrame	Afficher le cadre caméra
+settings.cameraFrameColor	Couleur du cadre caméra
+settings.effectMarkerColor	Couleur des repères d'effet
+settings.tileMarkerColor	Repère de position de tuile
+settings.positionMarkerColor	Repère de position
+settings.segmentColor	Ligne de décalage
+settings.effectNameColor	Nom de l'effet
+settings.colorHint	Couleur : RRGGBB ou RRGGBBAA
+gui.selectTiles	Sélectionnez au moins deux tuiles dans l'éditeur de niveau.
+gui.usesFirstLast	L'outil utilise la première et la dernière tuile sélectionnées.
+panel.measure	Mesure
+panel.guideLine	Mode construction
+panel.circle	Cercle
+panel.euclid	Euclide
+panel.constructionList	Figures
+panel.shapeInfo	Informations de la figure
+button.showGuide	Afficher la ligne guide
+button.snapDrag	Magnétiser le glissement caméra sur le guide
+button.dragCenter	Déplacer le centre caméra sélectionné
+button.selectedLine	Droite
+button.perpendicular	Médiatrice
+button.apply	Appliquer la droite
+button.clear	Effacer
+button.auto	Auto
+button.minusStep	- Pas
+button.snap	Magnétiser
+button.plusStep	+ Pas
+button.saveLine1	Enregistrer 1
+button.saveLine2	Enregistrer 2
+button.snapIntersection	Magnétiser à l'intersection
+button.selectedCircle	Cercle depuis les tuiles
+button.applyCircle	Appliquer le cercle
+button.clearCircle	Effacer le cercle
+button.addShape	Ajouter
+button.deleteShape	Supprimer
+button.createIntersections	Créer les intersections
+button.useSelectedTile	Choisir
+button.pickPosition	Choisir
+button.visibleOn	ON
+button.visibleOff	OFF
+label.target	Cible
+label.key	Touche
+label.step	Pas
+label.anchor	Point d'ancrage
+label.direction	Direction
+label.center	Centre
+label.radius	Rayon
+label.shapeName	Nom
+label.shapeType	Type
+label.shapeColor	Couleur
+label.inputMode	Base d'entrée
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Tuile
+source.tile	Tuile {0}
+source.shapePoint	Point #{0}
+source.manual	Saisie manuelle
+mode.tile	Base tuile
+mode.coordinate	Base coordonnées
+shape.point	Point
+shape.line	Droite
+shape.perpendicular	Médiatrice
+shape.circle	Cercle
+message.noGuide	Aucune ligne guide.
+message.noShapes	Aucune figure.
+message.openEditor	Ouvrez l'éditeur de niveau.
+message.selectTwoTiles	Sélectionnez au moins deux tuiles.
+message.selectOneMoreTile	Sélectionnez une tuile supplémentaire.
+message.measureFailed	Capture impossible. Consultez les journaux UMM.
+message.editorPlayback	Masqué pendant la lecture dans l'éditeur.
+message.selectMoveCamera	Sélectionnez un événement Déplacement caméra.
+message.cameraFrameFailed	Capture du cadre caméra impossible. Consultez les journaux UMM.
+message.lineThroughTiles	Droite passant par les tuiles {0}->{1}
+message.perpendicularAtMidpoint	Perpendiculaire au milieu de {0}->{1}
+message.invalidLine	Valeur de point d'ancrage ou de direction invalide.
+message.customGuide	Ligne guide personnalisée.
+message.zeroDirection	La direction ne peut pas être nulle.
+message.invalidCircle	Valeur de cercle invalide.
+message.invalidCircleRadius	Le rayon doit être supérieur à zéro.
+message.customCircle	Cercle personnalisé.
+message.circleFromTiles	Cercle centré sur {0} et passant par {1}.
+message.noCircle	Cercle effacé.
+message.guideInactive	La ligne guide n'est pas active.
+message.updateFailed	Impossible de mettre à jour la coordonnée sélectionnée.
+message.snapped	{0} magnétisé sur le guide.
+message.snappedIntersection	{0} magnétisé sur l'intersection.
+message.moved	{0} déplacé de {1:0.#####} le long du guide.
+message.savedLine1	Ligne guide actuelle enregistrée dans l'emplacement 1.
+message.savedLine2	Ligne guide actuelle enregistrée dans l'emplacement 2.
+message.needTwoSavedLines	Enregistrez d'abord deux lignes guides.
+message.parallelLines	Les lignes guides enregistrées ne se croisent pas.
+message.selectCoordinateEvent	Sélectionnez un événement avec une coordonnée Vector2.
+message.selectPositionOffsetEvent	Sélectionnez un événement avec positionOffset.
+message.selectSingleShape	Sélectionnez exactement une figure.
+message.noVectorCoordinate	{0} ne possède pas de propriété de coordonnées Vector2.
+message.snappedToShape	{0} magnétisé sur la figure.
+message.shapeSnapOn	Magnétisme des figures activé.
+message.shapeSnapOff	Magnétisme des figures désactivé.
+message.movedToShape	{0} déplacé.
+target.camera	Cible : Déplacement caméra
+target.none	Cible : aucun événement ciblé
+target.label	Cible : {0}
+target.noVector	Cible : {0} ne possède pas de propriété Vector2
+target.property	Cible : {0}.{1}
+effect.moveCamera	Déplacement caméra
+effect.moveTrack	Déplacement de piste
+effect.positionTrack	Position de piste
+effect.freeRoam	Zone de déplacement libre
+effect.freeRoamRemove	Supprimer le déplacement libre
+measure.tiles	Tuiles
+measure.distance	Distance
+measure.midpoint	Milieu
+measure.fromTile	Depuis la tuile {0}
+measure.midpointFromTile	Milieu depuis {0}
+measure.relative	Position relative
+measure.tileToTile	{0}->{1}
+measure.angle	Angle
+measure.delta	Delta
+overlay.playerProxy	Référence joueur

@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Zobrazit kartu Euclid v editoru
+gui.showFrame	Zobrazit vybraný rámec pohybu kamery
+settings.showCameraFrame	Zobrazit rámec kamery
+settings.cameraFrameColor	Barva rámce kamery
+settings.effectMarkerColor	Barva značky efektu
+settings.tileMarkerColor	Značka polohy dlaždice
+settings.positionMarkerColor	Značka polohy
+settings.segmentColor	Posunová čára
+settings.effectNameColor	Název efektu
+settings.colorHint	Barva: RRGGBB nebo RRGGBBAA
+gui.selectTiles	Vyberte v editoru úrovně dvě nebo více dlaždic.
+gui.usesFirstLast	Nástroj používá první a poslední vybranou dlaždici.
+panel.measure	Měření
+panel.guideLine	Režim konstrukce
+panel.circle	Kružnice
+panel.euclid	Eukleidés
+panel.constructionList	Útvary
+panel.shapeInfo	Informace o útvaru
+button.showGuide	Zobrazit vodicí přímku
+button.snapDrag	Přichytit tažení kamery k vodítku
+button.dragCenter	Táhnout střed vybrané kamery
+button.selectedLine	Přímka
+button.perpendicular	Osa úsečky
+button.apply	Použít přímku
+button.clear	Vymazat
+button.auto	Auto
+button.minusStep	- Krok
+button.snap	Přichytit
+button.plusStep	+ Krok
+button.saveLine1	Uložit 1
+button.saveLine2	Uložit 2
+button.snapIntersection	Přichytit k průsečíku
+button.selectedCircle	Kružnice z dlaždic
+button.applyCircle	Použít kružnici
+button.clearCircle	Vymazat kružnici
+button.addShape	Přidat
+button.deleteShape	Odstranit
+button.createIntersections	Vytvořit průsečíky
+button.useSelectedTile	Vybrat
+button.pickPosition	Vybrat
+button.visibleOn	ZAP.
+button.visibleOff	VYP.
+label.target	Cíl
+label.key	Klávesa
+label.step	Krok
+label.anchor	Kotevní bod
+label.direction	Směr
+label.center	Střed
+label.radius	Poloměr
+label.shapeName	Název
+label.shapeType	Typ
+label.shapeColor	Barva
+label.inputMode	Základ vstupu
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Dlaždice
+source.tile	Dlaždice {0}
+source.shapePoint	Bod #{0}
+source.manual	Ruční zadání
+mode.tile	Podle dlaždice
+mode.coordinate	Podle souřadnic
+shape.point	Bod
+shape.line	Přímka
+shape.perpendicular	Osa úsečky
+shape.circle	Kružnice
+message.noGuide	Žádná vodicí přímka.
+message.noShapes	Žádné útvary.
+message.openEditor	Otevřete editor úrovně.
+message.selectTwoTiles	Vyberte alespoň dvě dlaždice.
+message.selectOneMoreTile	Vyberte ještě jednu dlaždici.
+message.measureFailed	Zachycení se nezdařilo. Zkontrolujte protokoly UMM.
+message.editorPlayback	Skryto během přehrávání v editoru.
+message.selectMoveCamera	Vyberte událost pohybu kamery.
+message.cameraFrameFailed	Zachycení rámce kamery se nezdařilo. Zkontrolujte protokoly UMM.
+message.lineThroughTiles	Přímka přes dlaždice {0}->{1}
+message.perpendicularAtMidpoint	Kolmice ve středu {0}->{1}
+message.invalidLine	Neplatná hodnota kotevního bodu nebo směru.
+message.customGuide	Vlastní vodicí přímka.
+message.zeroDirection	Směr nesmí být nulový.
+message.invalidCircle	Neplatná hodnota kružnice.
+message.invalidCircleRadius	Poloměr musí být větší než nula.
+message.customCircle	Vlastní kružnice.
+message.circleFromTiles	Kružnice se středem v {0} procházející bodem {1}.
+message.noCircle	Kružnice vymazána.
+message.guideInactive	Vodicí přímka není aktivní.
+message.updateFailed	Vybranou souřadnici se nepodařilo aktualizovat.
+message.snapped	{0} přichyceno k vodítku.
+message.snappedIntersection	{0} přichyceno k průsečíku.
+message.moved	{0} posunuto o {1:0.#####} podél vodítka.
+message.savedLine1	Aktuální vodicí přímka uložena do slotu 1.
+message.savedLine2	Aktuální vodicí přímka uložena do slotu 2.
+message.needTwoSavedLines	Nejprve uložte dvě vodicí přímky.
+message.parallelLines	Uložené vodicí přímky se neprotínají.
+message.selectCoordinateEvent	Vyberte událost se souřadnicí Vector2.
+message.selectPositionOffsetEvent	Vyberte událost s positionOffset.
+message.selectSingleShape	Vyberte právě jeden útvar.
+message.noVectorCoordinate	{0} nemá vlastnost souřadnic Vector2.
+message.snappedToShape	{0} přichyceno k útvaru.
+message.shapeSnapOn	Přichytávání k útvarům zapnuto.
+message.shapeSnapOff	Přichytávání k útvarům vypnuto.
+message.movedToShape	{0} posunuto.
+target.camera	Cíl: Pohyb kamery
+target.none	Cíl: žádná aktivní událost
+target.label	Cíl: {0}
+target.noVector	Cíl: {0} nemá vlastnost Vector2
+target.property	Cíl: {0}.{1}
+effect.moveCamera	Pohyb kamery
+effect.moveTrack	Pohyb dráhy
+effect.positionTrack	Poloha dráhy
+effect.freeRoam	Oblast volného pohybu
+effect.freeRoamRemove	Odstranit volný pohyb
+measure.tiles	Dlaždice
+measure.distance	Vzdálenost
+measure.midpoint	Střed
+measure.fromTile	Od dlaždice {0}
+measure.midpointFromTile	Střed od {0}
+measure.relative	Relativní poloha
+measure.tileToTile	{0}->{1}
+measure.angle	Úhel
+measure.delta	Změna
+overlay.playerProxy	Reference hráče

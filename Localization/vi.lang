@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Hiện tab Euclid trong trình chỉnh sửa
+gui.showFrame	Hiện khung Di chuyển camera đã chọn
+settings.showCameraFrame	Hiện khung camera
+settings.cameraFrameColor	Màu khung camera
+settings.effectMarkerColor	Màu dấu hiệu ứng
+settings.tileMarkerColor	Dấu vị trí ô
+settings.positionMarkerColor	Dấu tọa độ vị trí
+settings.segmentColor	Đường độ lệch
+settings.effectNameColor	Tên hiệu ứng
+settings.colorHint	Màu: RRGGBB hoặc RRGGBBAA
+gui.selectTiles	Chọn hai ô trở lên trong trình chỉnh sửa màn chơi.
+gui.usesFirstLast	Công cụ dùng ô được chọn đầu tiên và cuối cùng.
+panel.measure	Đo lường
+panel.guideLine	Chế độ dựng hình
+panel.circle	Đường tròn
+panel.euclid	Euclid
+panel.constructionList	Hình
+panel.shapeInfo	Thông tin hình
+button.showGuide	Hiện đường dẫn
+button.snapDrag	Bắt kéo camera vào đường dẫn
+button.dragCenter	Kéo tâm camera đã chọn
+button.selectedLine	Đường thẳng
+button.perpendicular	Đường trung trực
+button.apply	Áp dụng đường thẳng
+button.clear	Xóa
+button.auto	Tự động
+button.minusStep	- Bước
+button.snap	Bắt dính
+button.plusStep	+ Bước
+button.saveLine1	Lưu 1
+button.saveLine2	Lưu 2
+button.snapIntersection	Bắt vào giao điểm
+button.selectedCircle	Đường tròn từ ô
+button.applyCircle	Áp dụng đường tròn
+button.clearCircle	Xóa đường tròn
+button.addShape	Thêm
+button.deleteShape	Xóa
+button.createIntersections	Tạo giao điểm
+button.useSelectedTile	Chọn
+button.pickPosition	Chọn
+button.visibleOn	BẬT
+button.visibleOff	TẮT
+label.target	Mục tiêu
+label.key	Phím
+label.step	Bước
+label.anchor	Điểm neo
+label.direction	Hướng
+label.center	Tâm
+label.radius	Bán kính
+label.shapeName	Tên
+label.shapeType	Loại
+label.shapeColor	Màu
+label.inputMode	Cơ sở nhập
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Ô
+source.tile	Ô {0}
+source.shapePoint	Điểm #{0}
+source.manual	Nhập thủ công
+mode.tile	Theo ô
+mode.coordinate	Theo tọa độ
+shape.point	Điểm
+shape.line	Đường thẳng
+shape.perpendicular	Đường trung trực
+shape.circle	Đường tròn
+message.noGuide	Không có đường dẫn.
+message.noShapes	Không có hình.
+message.openEditor	Hãy mở trình chỉnh sửa màn chơi.
+message.selectTwoTiles	Chọn ít nhất hai ô.
+message.selectOneMoreTile	Chọn thêm một ô.
+message.measureFailed	Không thể lấy dữ liệu. Hãy kiểm tra nhật ký UMM.
+message.editorPlayback	Ẩn trong khi phát thử trong trình chỉnh sửa.
+message.selectMoveCamera	Chọn sự kiện Di chuyển camera.
+message.cameraFrameFailed	Không thể lấy khung camera. Hãy kiểm tra nhật ký UMM.
+message.lineThroughTiles	Đường thẳng qua các ô {0}->{1}
+message.perpendicularAtMidpoint	Đường vuông góc tại trung điểm của {0}->{1}
+message.invalidLine	Giá trị điểm neo hoặc hướng không hợp lệ.
+message.customGuide	Đường dẫn tùy chỉnh.
+message.zeroDirection	Hướng không được bằng 0.
+message.invalidCircle	Giá trị đường tròn không hợp lệ.
+message.invalidCircleRadius	Bán kính phải lớn hơn 0.
+message.customCircle	Đường tròn tùy chỉnh.
+message.circleFromTiles	Đường tròn tâm {0} đi qua {1}.
+message.noCircle	Đã xóa đường tròn.
+message.guideInactive	Đường dẫn chưa được kích hoạt.
+message.updateFailed	Không thể cập nhật tọa độ đã chọn.
+message.snapped	Đã bắt {0} vào đường dẫn.
+message.snappedIntersection	Đã bắt {0} vào giao điểm.
+message.moved	Đã di chuyển {0} {1:0.#####} dọc theo đường dẫn.
+message.savedLine1	Đã lưu đường dẫn hiện tại vào ô 1.
+message.savedLine2	Đã lưu đường dẫn hiện tại vào ô 2.
+message.needTwoSavedLines	Hãy lưu hai đường dẫn trước.
+message.parallelLines	Các đường dẫn đã lưu không giao nhau.
+message.selectCoordinateEvent	Chọn sự kiện có tọa độ Vector2.
+message.selectPositionOffsetEvent	Chọn sự kiện có positionOffset.
+message.selectSingleShape	Chỉ chọn đúng một hình.
+message.noVectorCoordinate	{0} không có thuộc tính tọa độ Vector2.
+message.snappedToShape	Đã bắt {0} vào hình.
+message.shapeSnapOn	Đã bật bắt dính vào hình.
+message.shapeSnapOff	Đã tắt bắt dính vào hình.
+message.movedToShape	Đã di chuyển {0}.
+target.camera	Mục tiêu: Di chuyển camera
+target.none	Mục tiêu: không có sự kiện đang được chọn
+target.label	Mục tiêu: {0}
+target.noVector	Mục tiêu: {0} không có thuộc tính Vector2
+target.property	Mục tiêu: {0}.{1}
+effect.moveCamera	Di chuyển camera
+effect.moveTrack	Di chuyển đường đi
+effect.positionTrack	Vị trí đường đi
+effect.freeRoam	Khu vực di chuyển tự do
+effect.freeRoamRemove	Xóa di chuyển tự do
+measure.tiles	Ô
+measure.distance	Khoảng cách
+measure.midpoint	Trung điểm
+measure.fromTile	Từ ô {0}
+measure.midpointFromTile	Trung điểm từ {0}
+measure.relative	Vị trí tương đối
+measure.tileToTile	{0}->{1}
+measure.angle	Góc
+measure.delta	Độ thay đổi
+overlay.playerProxy	Mốc người chơi

@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Pokaż kartę Euclid w edytorze
+gui.showFrame	Pokaż wybraną ramkę ruchu kamery
+settings.showCameraFrame	Pokaż ramkę kamery
+settings.cameraFrameColor	Kolor ramki kamery
+settings.effectMarkerColor	Kolor znacznika efektu
+settings.tileMarkerColor	Znacznik pozycji kafelka
+settings.positionMarkerColor	Znacznik pozycji
+settings.segmentColor	Linia przesunięcia
+settings.effectNameColor	Nazwa efektu
+settings.colorHint	Kolor: RRGGBB lub RRGGBBAA
+gui.selectTiles	Wybierz co najmniej dwa kafelki w edytorze poziomu.
+gui.usesFirstLast	Narzędzie używa pierwszego i ostatniego wybranego kafelka.
+panel.measure	Pomiar
+panel.guideLine	Tryb konstrukcji
+panel.circle	Okrąg
+panel.euclid	Euklides
+panel.constructionList	Figury
+panel.shapeInfo	Informacje o figurze
+button.showGuide	Pokaż linię pomocniczą
+button.snapDrag	Przyciągaj przeciąganie kamery do linii
+button.dragCenter	Przeciągnij środek wybranej kamery
+button.selectedLine	Prosta
+button.perpendicular	Symetralna
+button.apply	Zastosuj prostą
+button.clear	Wyczyść
+button.auto	Auto
+button.minusStep	- Krok
+button.snap	Przyciągnij
+button.plusStep	+ Krok
+button.saveLine1	Zapisz 1
+button.saveLine2	Zapisz 2
+button.snapIntersection	Przyciągnij do przecięcia
+button.selectedCircle	Okrąg z kafelków
+button.applyCircle	Zastosuj okrąg
+button.clearCircle	Wyczyść okrąg
+button.addShape	Dodaj
+button.deleteShape	Usuń
+button.createIntersections	Utwórz przecięcia
+button.useSelectedTile	Wybierz
+button.pickPosition	Wybierz
+button.visibleOn	WŁ.
+button.visibleOff	WYŁ.
+label.target	Cel
+label.key	Klawisz
+label.step	Krok
+label.anchor	Punkt bazowy
+label.direction	Kierunek
+label.center	Środek
+label.radius	Promień
+label.shapeName	Nazwa
+label.shapeType	Typ
+label.shapeColor	Kolor
+label.inputMode	Baza wejścia
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Kafelek
+source.tile	Kafelek {0}
+source.shapePoint	Punkt #{0}
+source.manual	Wprowadzanie ręczne
+mode.tile	Baza kafelka
+mode.coordinate	Baza współrzędnych
+shape.point	Punkt
+shape.line	Prosta
+shape.perpendicular	Symetralna
+shape.circle	Okrąg
+message.noGuide	Brak linii pomocniczej.
+message.noShapes	Brak figur.
+message.openEditor	Otwórz edytor poziomu.
+message.selectTwoTiles	Wybierz co najmniej dwa kafelki.
+message.selectOneMoreTile	Wybierz jeszcze jeden kafelek.
+message.measureFailed	Przechwytywanie nie powiodło się. Sprawdź logi UMM.
+message.editorPlayback	Ukryte podczas odtwarzania w edytorze.
+message.selectMoveCamera	Wybierz zdarzenie ruchu kamery.
+message.cameraFrameFailed	Przechwycenie ramki kamery nie powiodło się. Sprawdź logi UMM.
+message.lineThroughTiles	Prosta przez kafelki {0}->{1}
+message.perpendicularAtMidpoint	Prostopadła w środku {0}->{1}
+message.invalidLine	Nieprawidłowa wartość punktu bazowego lub kierunku.
+message.customGuide	Niestandardowa linia pomocnicza.
+message.zeroDirection	Kierunek nie może być zerowy.
+message.invalidCircle	Nieprawidłowa wartość okręgu.
+message.invalidCircleRadius	Promień musi być większy od zera.
+message.customCircle	Niestandardowy okrąg.
+message.circleFromTiles	Okrąg o środku w {0}, przechodzący przez {1}.
+message.noCircle	Okrąg wyczyszczony.
+message.guideInactive	Linia pomocnicza nie jest aktywna.
+message.updateFailed	Nie udało się zaktualizować wybranej współrzędnej.
+message.snapped	Przyciągnięto {0} do linii pomocniczej.
+message.snappedIntersection	Przyciągnięto {0} do przecięcia.
+message.moved	Przesunięto {0} o {1:0.#####} wzdłuż linii pomocniczej.
+message.savedLine1	Bieżącą linię pomocniczą zapisano w slocie 1.
+message.savedLine2	Bieżącą linię pomocniczą zapisano w slocie 2.
+message.needTwoSavedLines	Najpierw zapisz dwie linie pomocnicze.
+message.parallelLines	Zapisane linie pomocnicze nie przecinają się.
+message.selectCoordinateEvent	Wybierz zdarzenie ze współrzędną Vector2.
+message.selectPositionOffsetEvent	Wybierz zdarzenie z positionOffset.
+message.selectSingleShape	Wybierz dokładnie jedną figurę.
+message.noVectorCoordinate	{0} nie ma właściwości współrzędnych Vector2.
+message.snappedToShape	Przyciągnięto {0} do figury.
+message.shapeSnapOn	Przyciąganie do figur włączone.
+message.shapeSnapOff	Przyciąganie do figur wyłączone.
+message.movedToShape	Przesunięto {0}.
+target.camera	Cel: Ruch kamery
+target.none	Cel: brak aktywnego zdarzenia
+target.label	Cel: {0}
+target.noVector	Cel: {0} nie ma właściwości Vector2
+target.property	Cel: {0}.{1}
+effect.moveCamera	Ruch kamery
+effect.moveTrack	Ruch ścieżki
+effect.positionTrack	Pozycja ścieżki
+effect.freeRoam	Strefa swobodnego ruchu
+effect.freeRoamRemove	Usuń swobodny ruch
+measure.tiles	Kafelki
+measure.distance	Odległość
+measure.midpoint	Środek
+measure.fromTile	Od kafelka {0}
+measure.midpointFromTile	Środek względem {0}
+measure.relative	Pozycja względna
+measure.tileToTile	{0}->{1}
+measure.angle	Kąt
+measure.delta	Zmiana
+overlay.playerProxy	Odniesienie gracza

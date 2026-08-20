@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Afișează fila Euclid în editor
+gui.showFrame	Afișează cadrul selectat de mișcare a camerei
+settings.showCameraFrame	Afișează cadrul camerei
+settings.cameraFrameColor	Culoarea cadrului camerei
+settings.effectMarkerColor	Culoarea marcajului efectului
+settings.tileMarkerColor	Marcaj poziție dală
+settings.positionMarkerColor	Marcaj poziție
+settings.segmentColor	Linie de decalaj
+settings.effectNameColor	Numele efectului
+settings.colorHint	Culoare: RRGGBB sau RRGGBBAA
+gui.selectTiles	Selectează două sau mai multe dale în editorul de nivel.
+gui.usesFirstLast	Instrumentul folosește prima și ultima dală selectată.
+panel.measure	Măsurare
+panel.guideLine	Mod de construcție
+panel.circle	Cerc
+panel.euclid	Euclid
+panel.constructionList	Forme
+panel.shapeInfo	Informații formă
+button.showGuide	Afișează linia ghid
+button.snapDrag	Fixează tragerea camerei pe ghid
+button.dragCenter	Trage centrul camerei selectate
+button.selectedLine	Dreaptă
+button.perpendicular	Mediatoare
+button.apply	Aplică dreapta
+button.clear	Șterge
+button.auto	Auto
+button.minusStep	- Pas
+button.snap	Fixare
+button.plusStep	+ Pas
+button.saveLine1	Salvează 1
+button.saveLine2	Salvează 2
+button.snapIntersection	Fixare la intersecție
+button.selectedCircle	Cerc din dale
+button.applyCircle	Aplică cercul
+button.clearCircle	Șterge cercul
+button.addShape	Adaugă
+button.deleteShape	Șterge
+button.createIntersections	Creează intersecții
+button.useSelectedTile	Alege
+button.pickPosition	Alege
+button.visibleOn	PORNIT
+button.visibleOff	OPRIT
+label.target	Țintă
+label.key	Tastă
+label.step	Pas
+label.anchor	Ancoră
+label.direction	Direcție
+label.center	Centru
+label.radius	Rază
+label.shapeName	Nume
+label.shapeType	Tip
+label.shapeColor	Culoare
+label.inputMode	Bază de intrare
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Dală
+source.tile	Dală {0}
+source.shapePoint	Punct #{0}
+source.manual	Introducere manuală
+mode.tile	Bază dală
+mode.coordinate	Bază coordonate
+shape.point	Punct
+shape.line	Dreaptă
+shape.perpendicular	Mediatoare
+shape.circle	Cerc
+message.noGuide	Nu există linie ghid.
+message.noShapes	Nu există forme.
+message.openEditor	Deschide editorul de nivel.
+message.selectTwoTiles	Selectează cel puțin două dale.
+message.selectOneMoreTile	Selectează încă o dală.
+message.measureFailed	Capturarea a eșuat. Verifică jurnalele UMM.
+message.editorPlayback	Ascuns în timpul redării în editor.
+message.selectMoveCamera	Selectează un eveniment de mișcare a camerei.
+message.cameraFrameFailed	Capturarea cadrului camerei a eșuat. Verifică jurnalele UMM.
+message.lineThroughTiles	Dreaptă prin dalele {0}->{1}
+message.perpendicularAtMidpoint	Perpendiculară în mijlocul {0}->{1}
+message.invalidLine	Valoare invalidă pentru ancoră sau direcție.
+message.customGuide	Linie ghid personalizată.
+message.zeroDirection	Direcția nu poate fi zero.
+message.invalidCircle	Valoare invalidă pentru cerc.
+message.invalidCircleRadius	Raza trebuie să fie mai mare decât zero.
+message.customCircle	Cerc personalizat.
+message.circleFromTiles	Cerc cu centrul în {0}, trecând prin {1}.
+message.noCircle	Cercul a fost șters.
+message.guideInactive	Linia ghid nu este activă.
+message.updateFailed	Nu s-a putut actualiza coordonata selectată.
+message.snapped	{0} a fost fixat pe ghid.
+message.snappedIntersection	{0} a fost fixat la intersecție.
+message.moved	{0} a fost deplasat cu {1:0.#####} de-a lungul ghidului.
+message.savedLine1	Linia ghid curentă a fost salvată în slotul 1.
+message.savedLine2	Linia ghid curentă a fost salvată în slotul 2.
+message.needTwoSavedLines	Salvează mai întâi două linii ghid.
+message.parallelLines	Liniile ghid salvate nu se intersectează.
+message.selectCoordinateEvent	Selectează un eveniment cu o coordonată Vector2.
+message.selectPositionOffsetEvent	Selectează un eveniment cu positionOffset.
+message.selectSingleShape	Selectează exact o formă.
+message.noVectorCoordinate	{0} nu are o proprietate de coordonate Vector2.
+message.snappedToShape	{0} a fost fixat pe formă.
+message.shapeSnapOn	Fixarea pe forme este pornită.
+message.shapeSnapOff	Fixarea pe forme este oprită.
+message.movedToShape	{0} a fost mutat.
+target.camera	Țintă: Mișcare cameră
+target.none	Țintă: niciun eveniment focalizat
+target.label	Țintă: {0}
+target.noVector	Țintă: {0} nu are proprietate Vector2
+target.property	Țintă: {0}.{1}
+effect.moveCamera	Mișcare cameră
+effect.moveTrack	Mișcare traseu
+effect.positionTrack	Poziție traseu
+effect.freeRoam	Zonă de mișcare liberă
+effect.freeRoamRemove	Elimină mișcarea liberă
+measure.tiles	Dale
+measure.distance	Distanță
+measure.midpoint	Mijloc
+measure.fromTile	De la dala {0}
+measure.midpointFromTile	Mijloc față de {0}
+measure.relative	Poziție relativă
+measure.tileToTile	{0}->{1}
+measure.angle	Unghi
+measure.delta	Delta
+overlay.playerProxy	Referință jucător

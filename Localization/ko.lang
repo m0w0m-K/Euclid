@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	유클리드 에디터 탭 표시
+gui.showFrame	선택한 카메라 프레임 표시
+settings.showCameraFrame	카메라 프레임 표시
+settings.cameraFrameColor	카메라 프레임 색상
+settings.effectMarkerColor	이펙트 마크 색상
+settings.tileMarkerColor	타일 위치 마크
+settings.positionMarkerColor	위치 좌표 마크
+settings.segmentColor	선분 마크
+settings.effectNameColor	이펙트 이름
+settings.colorHint	색상: RRGGBB 또는 RRGGBBAA
+gui.selectTiles	레벨 에디터에서 타일을 두 개 이상 선택하세요.
+gui.usesFirstLast	이 도구는 처음과 마지막으로 선택된 타일을 사용합니다.
+panel.measure	측정
+panel.guideLine	작도 모드
+panel.circle	원
+panel.euclid	유클리드
+panel.constructionList	도형 목록
+panel.shapeInfo	도형 정보
+button.showGuide	가이드 선 표시
+button.snapDrag	카메라 드래그를 가이드에 스냅
+button.dragCenter	선택한 카메라 중심 드래그
+button.selectedLine	직선
+button.perpendicular	수직 이등분선
+button.apply	직선 적용
+button.clear	지우기
+button.auto	자동
+button.minusStep	- 간격
+button.snap	스냅
+button.plusStep	+ 간격
+button.saveLine1	1 저장
+button.saveLine2	2 저장
+button.snapIntersection	교점 스냅
+button.selectedCircle	선택 원
+button.applyCircle	원 적용
+button.clearCircle	원 지우기
+button.addShape	추가
+button.deleteShape	삭제
+button.createIntersections	교점 생성
+button.useSelectedTile	선택
+button.pickPosition	선택
+button.visibleOn	켜짐
+button.visibleOff	꺼짐
+label.target	대상
+label.key	키
+label.step	간격
+label.anchor	기준점
+label.direction	방향
+label.center	중심
+label.radius	반지름
+label.shapeName	이름
+label.shapeType	종류
+label.shapeColor	색상
+label.inputMode	입력 기준
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	타일
+source.tile	타일 {0}
+source.shapePoint	점 #{0}
+source.manual	직접 입력
+mode.tile	타일 기준
+mode.coordinate	좌표 기준
+shape.point	점
+shape.line	직선
+shape.perpendicular	수직 이등분선
+shape.circle	원
+message.noGuide	가이드 선 없음.
+message.noShapes	도형 없음.
+message.openEditor	레벨 에디터를 여세요.
+message.selectTwoTiles	타일을 두 개 이상 선택하세요.
+message.selectOneMoreTile	타일을 하나 더 선택하세요.
+message.measureFailed	측정 실패. UMM 로그를 확인하세요.
+message.editorPlayback	숨김: 에디터 재생 중
+message.selectMoveCamera	카메라 이동 이벤트를 선택하세요.
+message.cameraFrameFailed	카메라 프레임 측정 실패. UMM 로그를 확인하세요.
+message.lineThroughTiles	타일 {0}->{1}을 지나는 선
+message.perpendicularAtMidpoint	{0}->{1} 중점의 수직선
+message.invalidLine	기준점 또는 방향 값이 잘못되었습니다.
+message.customGuide	사용자 가이드 선.
+message.zeroDirection	방향은 0이 아니어야 합니다.
+message.invalidCircle	원 값이 잘못되었습니다.
+message.invalidCircleRadius	반지름은 0보다 커야 합니다.
+message.customCircle	사용자 원.
+message.circleFromTiles	{0}을 중심으로 {1}을 지나는 원.
+message.noCircle	원을 지웠습니다.
+message.guideInactive	가이드 선이 활성화되지 않았습니다.
+message.updateFailed	선택한 좌표를 업데이트할 수 없습니다.
+message.snapped	{0}을(를) 가이드에 스냅했습니다.
+message.snappedIntersection	{0}을(를) 교점에 스냅했습니다.
+message.moved	{0}을(를) 가이드를 따라 {1:0.#####}만큼 이동했습니다.
+message.savedLine1	현재 가이드 선을 1번에 저장했습니다.
+message.savedLine2	현재 가이드 선을 2번에 저장했습니다.
+message.needTwoSavedLines	가이드 선을 두 개 먼저 저장하세요.
+message.parallelLines	저장된 가이드 선이 서로 교차하지 않습니다.
+message.selectCoordinateEvent	좌표가 있는 이벤트를 선택하세요.
+message.selectPositionOffsetEvent	positionOffset이 있는 이벤트를 선택하세요.
+message.selectSingleShape	도형을 하나만 선택하세요.
+message.noVectorCoordinate	{0}에는 Vector2 좌표 속성이 없습니다.
+message.snappedToShape	{0}을(를) 도형에 스냅했습니다.
+message.shapeSnapOn	도형 스냅 켜짐.
+message.shapeSnapOff	도형 스냅 꺼짐.
+message.movedToShape	{0}을(를) 이동했습니다.
+target.camera	대상: 카메라 이동
+target.none	대상: 포커스된 이벤트 없음
+target.label	대상: {0}
+target.noVector	대상: {0}에는 Vector2 속성이 없습니다.
+target.property	대상: {0}.{1}
+effect.moveCamera	카메라 이동
+effect.moveTrack	길 이동
+effect.positionTrack	길 위치
+effect.freeRoam	자유 이동 구간
+effect.freeRoamRemove	자유 이동 제거
+measure.tiles	타일
+measure.distance	거리
+measure.midpoint	중점
+measure.fromTile	타일 {0} 기준
+measure.midpointFromTile	{0} 기준 중점
+measure.relative	상대 위치
+measure.tileToTile	{0}->{1}
+measure.angle	각도
+measure.delta	변화량
+overlay.playerProxy	플레이어 기준

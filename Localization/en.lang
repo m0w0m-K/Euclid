@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Show Euclid editor tab
+gui.showFrame	Show selected Move Camera frame
+settings.showCameraFrame	Show camera frame
+settings.cameraFrameColor	Camera frame color
+settings.effectMarkerColor	Effect marker color
+settings.tileMarkerColor	Tile position marker
+settings.positionMarkerColor	Position marker
+settings.segmentColor	Offset line
+settings.effectNameColor	Effect name
+settings.colorHint	Color: RRGGBB or RRGGBBAA
+gui.selectTiles	Select two or more tiles in the level editor.
+gui.usesFirstLast	The tool uses the first and last selected tile.
+panel.measure	Measure
+panel.guideLine	Construction Mode
+panel.circle	Circle
+panel.euclid	Euclid
+panel.constructionList	Shapes
+panel.shapeInfo	Shape Info
+button.showGuide	Show guide line
+button.snapDrag	Snap camera drag to guide
+button.dragCenter	Drag selected camera center
+button.selectedLine	Line
+button.perpendicular	Perp. bisector
+button.apply	Apply line
+button.clear	Clear
+button.auto	Auto
+button.minusStep	- Step
+button.snap	Snap
+button.plusStep	+ Step
+button.saveLine1	Save 1
+button.saveLine2	Save 2
+button.snapIntersection	Snap X
+button.selectedCircle	Circle from tiles
+button.applyCircle	Apply circle
+button.clearCircle	Clear circle
+button.addShape	Add
+button.deleteShape	Delete
+button.createIntersections	Create intersections
+button.useSelectedTile	Pick
+button.pickPosition	Pick
+button.visibleOn	ON
+button.visibleOff	OFF
+label.target	Target
+label.key	Key
+label.step	Step
+label.anchor	Anchor
+label.direction	Direction
+label.center	Center
+label.radius	Radius
+label.shapeName	Name
+label.shapeType	Type
+label.shapeColor	Color
+label.inputMode	Input basis
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Tile
+source.tile	Tile {0}
+source.shapePoint	Point #{0}
+source.manual	Manual
+mode.tile	Tile basis
+mode.coordinate	Coordinate basis
+shape.point	Point
+shape.line	Line
+shape.perpendicular	Perp. bisector
+shape.circle	Circle
+message.noGuide	No guide line.
+message.noShapes	No shapes.
+message.openEditor	Open the level editor.
+message.selectTwoTiles	Select at least two tiles.
+message.selectOneMoreTile	Select one more tile.
+message.measureFailed	Capture failed. Check UMM logs.
+message.editorPlayback	Hidden during editor playback.
+message.selectMoveCamera	Select a Move Camera event.
+message.cameraFrameFailed	Camera frame capture failed. Check UMM logs.
+message.lineThroughTiles	Line through tiles {0}->{1}
+message.perpendicularAtMidpoint	Perpendicular at midpoint of {0}->{1}
+message.invalidLine	Invalid anchor or direction value.
+message.customGuide	Custom guide line.
+message.zeroDirection	Direction must not be zero.
+message.invalidCircle	Invalid circle value.
+message.invalidCircleRadius	Radius must be greater than zero.
+message.customCircle	Custom circle.
+message.circleFromTiles	Circle centered at {0} through {1}.
+message.noCircle	Circle cleared.
+message.guideInactive	Guide line is not active.
+message.updateFailed	Could not update selected coordinate.
+message.snapped	Snapped {0} to guide.
+message.snappedIntersection	Snapped {0} to intersection.
+message.moved	Moved {0} {1:0.#####} along guide.
+message.savedLine1	Saved current guide line to slot 1.
+message.savedLine2	Saved current guide line to slot 2.
+message.needTwoSavedLines	Save two guide lines first.
+message.parallelLines	Saved guide lines do not intersect.
+message.selectCoordinateEvent	Select an event with a Vector2 coordinate.
+message.selectPositionOffsetEvent	Select an event with positionOffset.
+message.selectSingleShape	Select exactly one shape.
+message.noVectorCoordinate	{0} has no Vector2 coordinate property.
+message.snappedToShape	Snapped {0} to shape.
+message.shapeSnapOn	Shape snap on.
+message.shapeSnapOff	Shape snap off.
+message.movedToShape	Moved {0}.
+target.camera	Target: Camera Move
+target.none	Target: no focused event
+target.label	Target: {0}
+target.noVector	Target: {0} has no Vector2 property
+target.property	Target: {0}.{1}
+effect.moveCamera	Camera Move
+effect.moveTrack	Track Move
+effect.positionTrack	Track Position
+effect.freeRoam	Free Roam Area
+effect.freeRoamRemove	Remove Free Roam
+measure.tiles	Tiles
+measure.distance	Distance
+measure.midpoint	Midpoint
+measure.fromTile	From tile {0}
+measure.midpointFromTile	Midpoint from {0}
+measure.relative	Relative position
+measure.tileToTile	{0}->{1}
+measure.angle	Angle
+measure.delta	Delta
+overlay.playerProxy	Player ref

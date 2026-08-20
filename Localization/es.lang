@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Mostrar la pestaña Euclid del editor
+gui.showFrame	Mostrar el marco de Movimiento de cámara seleccionado
+settings.showCameraFrame	Mostrar marco de cámara
+settings.cameraFrameColor	Color del marco de cámara
+settings.effectMarkerColor	Color del marcador de efecto
+settings.tileMarkerColor	Marcador de posición de baldosa
+settings.positionMarkerColor	Marcador de posición
+settings.segmentColor	Línea de desplazamiento
+settings.effectNameColor	Nombre del efecto
+settings.colorHint	Color: RRGGBB o RRGGBBAA
+gui.selectTiles	Selecciona dos o más baldosas en el editor de niveles.
+gui.usesFirstLast	La herramienta usa la primera y la última baldosa seleccionadas.
+panel.measure	Medición
+panel.guideLine	Modo de construcción
+panel.circle	Círculo
+panel.euclid	Euclides
+panel.constructionList	Figuras
+panel.shapeInfo	Información de la figura
+button.showGuide	Mostrar línea guía
+button.snapDrag	Ajustar arrastre de cámara a la guía
+button.dragCenter	Arrastrar centro de cámara seleccionado
+button.selectedLine	Recta
+button.perpendicular	Mediatriz
+button.apply	Aplicar recta
+button.clear	Limpiar
+button.auto	Auto
+button.minusStep	- Paso
+button.snap	Ajustar
+button.plusStep	+ Paso
+button.saveLine1	Guardar 1
+button.saveLine2	Guardar 2
+button.snapIntersection	Ajustar a intersección
+button.selectedCircle	Círculo desde baldosas
+button.applyCircle	Aplicar círculo
+button.clearCircle	Limpiar círculo
+button.addShape	Añadir
+button.deleteShape	Eliminar
+button.createIntersections	Crear intersecciones
+button.useSelectedTile	Elegir
+button.pickPosition	Elegir
+button.visibleOn	ACT.
+button.visibleOff	DES.
+label.target	Objetivo
+label.key	Tecla
+label.step	Paso
+label.anchor	Ancla
+label.direction	Dirección
+label.center	Centro
+label.radius	Radio
+label.shapeName	Nombre
+label.shapeType	Tipo
+label.shapeColor	Color
+label.inputMode	Base de entrada
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Baldosa
+source.tile	Baldosa {0}
+source.shapePoint	Punto #{0}
+source.manual	Entrada manual
+mode.tile	Base de baldosa
+mode.coordinate	Base de coordenadas
+shape.point	Punto
+shape.line	Recta
+shape.perpendicular	Mediatriz
+shape.circle	Círculo
+message.noGuide	No hay línea guía.
+message.noShapes	No hay figuras.
+message.openEditor	Abre el editor de niveles.
+message.selectTwoTiles	Selecciona al menos dos baldosas.
+message.selectOneMoreTile	Selecciona una baldosa más.
+message.measureFailed	Falló la captura. Revisa los registros de UMM.
+message.editorPlayback	Oculto durante la reproducción del editor.
+message.selectMoveCamera	Selecciona un evento de Movimiento de cámara.
+message.cameraFrameFailed	Falló la captura del marco de cámara. Revisa los registros de UMM.
+message.lineThroughTiles	Recta por las baldosas {0}->{1}
+message.perpendicularAtMidpoint	Perpendicular en el punto medio de {0}->{1}
+message.invalidLine	Valor de ancla o dirección no válido.
+message.customGuide	Línea guía personalizada.
+message.zeroDirection	La dirección no puede ser cero.
+message.invalidCircle	Valor de círculo no válido.
+message.invalidCircleRadius	El radio debe ser mayor que cero.
+message.customCircle	Círculo personalizado.
+message.circleFromTiles	Círculo centrado en {0} que pasa por {1}.
+message.noCircle	Círculo eliminado.
+message.guideInactive	La línea guía no está activa.
+message.updateFailed	No se pudo actualizar la coordenada seleccionada.
+message.snapped	Se ajustó {0} a la guía.
+message.snappedIntersection	Se ajustó {0} a la intersección.
+message.moved	Se movió {0} {1:0.#####} a lo largo de la guía.
+message.savedLine1	La línea guía actual se guardó en la ranura 1.
+message.savedLine2	La línea guía actual se guardó en la ranura 2.
+message.needTwoSavedLines	Guarda primero dos líneas guía.
+message.parallelLines	Las líneas guía guardadas no se cruzan.
+message.selectCoordinateEvent	Selecciona un evento con una coordenada Vector2.
+message.selectPositionOffsetEvent	Selecciona un evento con positionOffset.
+message.selectSingleShape	Selecciona exactamente una figura.
+message.noVectorCoordinate	{0} no tiene una propiedad de coordenadas Vector2.
+message.snappedToShape	Se ajustó {0} a la figura.
+message.shapeSnapOn	Ajuste a figuras activado.
+message.shapeSnapOff	Ajuste a figuras desactivado.
+message.movedToShape	Se movió {0}.
+target.camera	Objetivo: Movimiento de cámara
+target.none	Objetivo: ningún evento enfocado
+target.label	Objetivo: {0}
+target.noVector	Objetivo: {0} no tiene propiedad Vector2
+target.property	Objetivo: {0}.{1}
+effect.moveCamera	Movimiento de cámara
+effect.moveTrack	Movimiento de pista
+effect.positionTrack	Posición de pista
+effect.freeRoam	Zona de movimiento libre
+effect.freeRoamRemove	Quitar movimiento libre
+measure.tiles	Baldosas
+measure.distance	Distancia
+measure.midpoint	Punto medio
+measure.fromTile	Desde la baldosa {0}
+measure.midpointFromTile	Punto medio desde {0}
+measure.relative	Posición relativa
+measure.tileToTile	{0}->{1}
+measure.angle	Ángulo
+measure.delta	Delta
+overlay.playerProxy	Referencia del jugador

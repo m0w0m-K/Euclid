@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Euclid エディタータブを表示
+gui.showFrame	選択したカメラ移動フレームを表示
+settings.showCameraFrame	カメラフレームを表示
+settings.cameraFrameColor	カメラフレームの色
+settings.effectMarkerColor	エフェクトマーカーの色
+settings.tileMarkerColor	タイル位置マーカー
+settings.positionMarkerColor	位置座標マーカー
+settings.segmentColor	オフセット線
+settings.effectNameColor	エフェクト名
+settings.colorHint	色: RRGGBB または RRGGBBAA
+gui.selectTiles	レベルエディターでタイルを2つ以上選択してください。
+gui.usesFirstLast	最初と最後に選択したタイルを使用します。
+panel.measure	計測
+panel.guideLine	作図モード
+panel.circle	円
+panel.euclid	ユークリッド
+panel.constructionList	図形
+panel.shapeInfo	図形情報
+button.showGuide	ガイド線を表示
+button.snapDrag	カメラドラッグをガイドにスナップ
+button.dragCenter	選択したカメラ中心をドラッグ
+button.selectedLine	直線
+button.perpendicular	垂直二等分線
+button.apply	直線を適用
+button.clear	クリア
+button.auto	自動
+button.minusStep	- 間隔
+button.snap	スナップ
+button.plusStep	+ 間隔
+button.saveLine1	1 に保存
+button.saveLine2	2 に保存
+button.snapIntersection	交点にスナップ
+button.selectedCircle	タイルから円
+button.applyCircle	円を適用
+button.clearCircle	円をクリア
+button.addShape	追加
+button.deleteShape	削除
+button.createIntersections	交点を作成
+button.useSelectedTile	選択
+button.pickPosition	選択
+button.visibleOn	ON
+button.visibleOff	OFF
+label.target	対象
+label.key	キー
+label.step	間隔
+label.anchor	基準点
+label.direction	方向
+label.center	中心
+label.radius	半径
+label.shapeName	名前
+label.shapeType	種類
+label.shapeColor	色
+label.inputMode	入力基準
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	タイル
+source.tile	タイル {0}
+source.shapePoint	点 #{0}
+source.manual	手動入力
+mode.tile	タイル基準
+mode.coordinate	座標基準
+shape.point	点
+shape.line	直線
+shape.perpendicular	垂直二等分線
+shape.circle	円
+message.noGuide	ガイド線がありません。
+message.noShapes	図形がありません。
+message.openEditor	レベルエディターを開いてください。
+message.selectTwoTiles	タイルを2つ以上選択してください。
+message.selectOneMoreTile	もう1つタイルを選択してください。
+message.measureFailed	取得に失敗しました。UMMログを確認してください。
+message.editorPlayback	エディター再生中は非表示です。
+message.selectMoveCamera	カメラ移動イベントを選択してください。
+message.cameraFrameFailed	カメラフレームの取得に失敗しました。UMMログを確認してください。
+message.lineThroughTiles	タイル {0}->{1} を通る直線
+message.perpendicularAtMidpoint	{0}->{1} の中点における垂線
+message.invalidLine	基準点または方向の値が無効です。
+message.customGuide	カスタムガイド線。
+message.zeroDirection	方向を0にすることはできません。
+message.invalidCircle	円の値が無効です。
+message.invalidCircleRadius	半径は0より大きくする必要があります。
+message.customCircle	カスタム円。
+message.circleFromTiles	{0} を中心として {1} を通る円。
+message.noCircle	円をクリアしました。
+message.guideInactive	ガイド線が有効ではありません。
+message.updateFailed	選択した座標を更新できませんでした。
+message.snapped	{0} をガイドにスナップしました。
+message.snappedIntersection	{0} を交点にスナップしました。
+message.moved	{0} をガイドに沿って {1:0.#####} 移動しました。
+message.savedLine1	現在のガイド線をスロット1に保存しました。
+message.savedLine2	現在のガイド線をスロット2に保存しました。
+message.needTwoSavedLines	先にガイド線を2本保存してください。
+message.parallelLines	保存したガイド線は交差しません。
+message.selectCoordinateEvent	Vector2座標を持つイベントを選択してください。
+message.selectPositionOffsetEvent	positionOffsetを持つイベントを選択してください。
+message.selectSingleShape	図形を1つだけ選択してください。
+message.noVectorCoordinate	{0} にはVector2座標プロパティがありません。
+message.snappedToShape	{0} を図形にスナップしました。
+message.shapeSnapOn	図形スナップをONにしました。
+message.shapeSnapOff	図形スナップをOFFにしました。
+message.movedToShape	{0} を移動しました。
+target.camera	対象: カメラ移動
+target.none	対象: フォーカス中のイベントなし
+target.label	対象: {0}
+target.noVector	対象: {0} にVector2プロパティがありません
+target.property	対象: {0}.{1}
+effect.moveCamera	カメラ移動
+effect.moveTrack	軌道移動
+effect.positionTrack	軌道位置
+effect.freeRoam	自由移動区間
+effect.freeRoamRemove	自由移動を解除
+measure.tiles	タイル
+measure.distance	距離
+measure.midpoint	中点
+measure.fromTile	タイル {0} 基準
+measure.midpointFromTile	{0} 基準の中点
+measure.relative	相対位置
+measure.tileToTile	{0}->{1}
+measure.angle	角度
+measure.delta	変化量
+overlay.playerProxy	プレイヤー基準

@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	Mostrar a aba Euclid no editor
+gui.showFrame	Mostrar quadro selecionado de Movimento da Câmera
+settings.showCameraFrame	Mostrar quadro da câmera
+settings.cameraFrameColor	Cor do quadro da câmera
+settings.effectMarkerColor	Cor do marcador de efeito
+settings.tileMarkerColor	Marcador de posição do bloco
+settings.positionMarkerColor	Marcador de posição
+settings.segmentColor	Linha de deslocamento
+settings.effectNameColor	Nome do efeito
+settings.colorHint	Cor: RRGGBB ou RRGGBBAA
+gui.selectTiles	Selecione dois ou mais blocos no editor de fases.
+gui.usesFirstLast	A ferramenta usa o primeiro e o último bloco selecionados.
+panel.measure	Medição
+panel.guideLine	Modo de construção
+panel.circle	Círculo
+panel.euclid	Euclides
+panel.constructionList	Formas
+panel.shapeInfo	Informações da forma
+button.showGuide	Mostrar linha guia
+button.snapDrag	Encaixar arrasto da câmera na guia
+button.dragCenter	Arrastar centro da câmera selecionada
+button.selectedLine	Reta
+button.perpendicular	Mediatriz
+button.apply	Aplicar reta
+button.clear	Limpar
+button.auto	Auto
+button.minusStep	- Passo
+button.snap	Encaixar
+button.plusStep	+ Passo
+button.saveLine1	Salvar 1
+button.saveLine2	Salvar 2
+button.snapIntersection	Encaixar na interseção
+button.selectedCircle	Círculo pelos blocos
+button.applyCircle	Aplicar círculo
+button.clearCircle	Limpar círculo
+button.addShape	Adicionar
+button.deleteShape	Excluir
+button.createIntersections	Criar interseções
+button.useSelectedTile	Selecionar
+button.pickPosition	Selecionar
+button.visibleOn	LIG.
+button.visibleOff	DESL.
+label.target	Alvo
+label.key	Tecla
+label.step	Passo
+label.anchor	Âncora
+label.direction	Direção
+label.center	Centro
+label.radius	Raio
+label.shapeName	Nome
+label.shapeType	Tipo
+label.shapeColor	Cor
+label.inputMode	Base de entrada
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	Bloco
+source.tile	Bloco {0}
+source.shapePoint	Ponto #{0}
+source.manual	Entrada manual
+mode.tile	Base do bloco
+mode.coordinate	Base de coordenadas
+shape.point	Ponto
+shape.line	Reta
+shape.perpendicular	Mediatriz
+shape.circle	Círculo
+message.noGuide	Nenhuma linha guia.
+message.noShapes	Nenhuma forma.
+message.openEditor	Abra o editor de fases.
+message.selectTwoTiles	Selecione pelo menos dois blocos.
+message.selectOneMoreTile	Selecione mais um bloco.
+message.measureFailed	Falha na captura. Verifique os logs do UMM.
+message.editorPlayback	Oculto durante a reprodução no editor.
+message.selectMoveCamera	Selecione um evento de Movimento da Câmera.
+message.cameraFrameFailed	Falha ao capturar o quadro da câmera. Verifique os logs do UMM.
+message.lineThroughTiles	Reta pelos blocos {0}->{1}
+message.perpendicularAtMidpoint	Perpendicular no ponto médio de {0}->{1}
+message.invalidLine	Valor de âncora ou direção inválido.
+message.customGuide	Linha guia personalizada.
+message.zeroDirection	A direção não pode ser zero.
+message.invalidCircle	Valor de círculo inválido.
+message.invalidCircleRadius	O raio deve ser maior que zero.
+message.customCircle	Círculo personalizado.
+message.circleFromTiles	Círculo com centro em {0}, passando por {1}.
+message.noCircle	Círculo limpo.
+message.guideInactive	A linha guia não está ativa.
+message.updateFailed	Não foi possível atualizar a coordenada selecionada.
+message.snapped	{0} encaixado na guia.
+message.snappedIntersection	{0} encaixado na interseção.
+message.moved	{0} movido {1:0.#####} ao longo da guia.
+message.savedLine1	Linha guia atual salva no slot 1.
+message.savedLine2	Linha guia atual salva no slot 2.
+message.needTwoSavedLines	Salve duas linhas guia primeiro.
+message.parallelLines	As linhas guia salvas não se cruzam.
+message.selectCoordinateEvent	Selecione um evento com uma coordenada Vector2.
+message.selectPositionOffsetEvent	Selecione um evento com positionOffset.
+message.selectSingleShape	Selecione exatamente uma forma.
+message.noVectorCoordinate	{0} não possui propriedade de coordenadas Vector2.
+message.snappedToShape	{0} encaixado na forma.
+message.shapeSnapOn	Encaixe em formas ligado.
+message.shapeSnapOff	Encaixe em formas desligado.
+message.movedToShape	{0} movido.
+target.camera	Alvo: Movimento da Câmera
+target.none	Alvo: nenhum evento em foco
+target.label	Alvo: {0}
+target.noVector	Alvo: {0} não possui propriedade Vector2
+target.property	Alvo: {0}.{1}
+effect.moveCamera	Movimento da Câmera
+effect.moveTrack	Movimento da pista
+effect.positionTrack	Posição da pista
+effect.freeRoam	Área de movimento livre
+effect.freeRoamRemove	Remover movimento livre
+measure.tiles	Blocos
+measure.distance	Distância
+measure.midpoint	Ponto médio
+measure.fromTile	A partir do bloco {0}
+measure.midpointFromTile	Ponto médio a partir de {0}
+measure.relative	Posição relativa
+measure.tileToTile	{0}->{1}
+measure.angle	Ângulo
+measure.delta	Delta
+overlay.playerProxy	Referência do jogador

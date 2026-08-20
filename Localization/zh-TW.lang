@@ -1,0 +1,125 @@
+# Euclid localization
+# UTF-8, tab-separated: key<TAB>text
+title	Euclid
+title.hidden	 
+gui.showTab	顯示 Euclid 編輯器分頁
+gui.showFrame	顯示所選「攝影機移動」框
+settings.showCameraFrame	顯示攝影機框
+settings.cameraFrameColor	攝影機框顏色
+settings.effectMarkerColor	效果標記顏色
+settings.tileMarkerColor	地板位置標記
+settings.positionMarkerColor	位置座標標記
+settings.segmentColor	偏移線
+settings.effectNameColor	效果名稱
+settings.colorHint	顏色：RRGGBB 或 RRGGBBAA
+gui.selectTiles	請在關卡編輯器中選擇兩個或更多地板。
+gui.usesFirstLast	此工具使用最先和最後選取的地板。
+panel.measure	測量
+panel.guideLine	作圖模式
+panel.circle	圓
+panel.euclid	歐幾里得
+panel.constructionList	圖形
+panel.shapeInfo	圖形資訊
+button.showGuide	顯示輔助線
+button.snapDrag	將攝影機拖曳吸附到輔助線
+button.dragCenter	拖曳所選攝影機中心
+button.selectedLine	直線
+button.perpendicular	垂直平分線
+button.apply	套用直線
+button.clear	清除
+button.auto	自動
+button.minusStep	- 步長
+button.snap	吸附
+button.plusStep	+ 步長
+button.saveLine1	儲存 1
+button.saveLine2	儲存 2
+button.snapIntersection	吸附交點
+button.selectedCircle	由地板建立圓
+button.applyCircle	套用圓
+button.clearCircle	清除圓
+button.addShape	新增
+button.deleteShape	刪除
+button.createIntersections	建立交點
+button.useSelectedTile	選取
+button.pickPosition	選取
+button.visibleOn	開
+button.visibleOff	關
+label.target	目標
+label.key	按鍵
+label.step	步長
+label.anchor	錨點
+label.direction	方向
+label.center	圓心
+label.radius	半徑
+label.shapeName	名稱
+label.shapeType	類型
+label.shapeColor	顏色
+label.inputMode	輸入基準
+label.firstPoint	P1
+label.secondPoint	P2
+label.tile	地板
+source.tile	地板 {0}
+source.shapePoint	點 #{0}
+source.manual	手動輸入
+mode.tile	地板基準
+mode.coordinate	座標基準
+shape.point	點
+shape.line	直線
+shape.perpendicular	垂直平分線
+shape.circle	圓
+message.noGuide	沒有輔助線。
+message.noShapes	沒有圖形。
+message.openEditor	請開啟關卡編輯器。
+message.selectTwoTiles	請至少選擇兩個地板。
+message.selectOneMoreTile	請再選擇一個地板。
+message.measureFailed	擷取失敗。請檢查 UMM 記錄。
+message.editorPlayback	編輯器播放期間已隱藏。
+message.selectMoveCamera	請選擇「攝影機移動」事件。
+message.cameraFrameFailed	攝影機框擷取失敗。請檢查 UMM 記錄。
+message.lineThroughTiles	通過地板 {0}->{1} 的直線
+message.perpendicularAtMidpoint	{0}->{1} 中點處的垂線
+message.invalidLine	錨點或方向值無效。
+message.customGuide	自訂輔助線。
+message.zeroDirection	方向不能為零。
+message.invalidCircle	圓參數無效。
+message.invalidCircleRadius	半徑必須大於零。
+message.customCircle	自訂圓。
+message.circleFromTiles	以 {0} 為圓心並通過 {1} 的圓。
+message.noCircle	圓已清除。
+message.guideInactive	輔助線未啟用。
+message.updateFailed	無法更新所選座標。
+message.snapped	已將 {0} 吸附到輔助線。
+message.snappedIntersection	已將 {0} 吸附到交點。
+message.moved	已沿輔助線移動 {0} {1:0.#####}。
+message.savedLine1	已將目前輔助線儲存到槽位 1。
+message.savedLine2	已將目前輔助線儲存到槽位 2。
+message.needTwoSavedLines	請先儲存兩條輔助線。
+message.parallelLines	已儲存的輔助線不相交。
+message.selectCoordinateEvent	請選擇具有 Vector2 座標的事件。
+message.selectPositionOffsetEvent	請選擇具有 positionOffset 的事件。
+message.selectSingleShape	請只選擇一個圖形。
+message.noVectorCoordinate	{0} 沒有 Vector2 座標屬性。
+message.snappedToShape	已將 {0} 吸附到圖形。
+message.shapeSnapOn	圖形吸附已開啟。
+message.shapeSnapOff	圖形吸附已關閉。
+message.movedToShape	已移動 {0}。
+target.camera	目標：攝影機移動
+target.none	目標：沒有聚焦的事件
+target.label	目標：{0}
+target.noVector	目標：{0} 沒有 Vector2 屬性
+target.property	目標：{0}.{1}
+effect.moveCamera	攝影機移動
+effect.moveTrack	軌道移動
+effect.positionTrack	軌道位置
+effect.freeRoam	自由移動區域
+effect.freeRoamRemove	移除自由移動
+measure.tiles	地板
+measure.distance	距離
+measure.midpoint	中點
+measure.fromTile	以地板 {0} 為基準
+measure.midpointFromTile	相對 {0} 的中點
+measure.relative	相對位置
+measure.tileToTile	{0}->{1}
+measure.angle	角度
+measure.delta	變化量
+overlay.playerProxy	玩家基準
