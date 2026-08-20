@@ -97,13 +97,36 @@ namespace Euclid
 
                     // Resolver succeeded but the inspector row could not be refreshed. Releasing the
                     // old field can restore its old text/value, so re-write the requested raw value
-                    // before taking the compatibility direct-apply path below.
+                    // before trying the inactive-inspector callback/direct fallback below.
                     PositionTrackSnapCommitSync.CancelImmediateCommit();
                     if (!LevelEventCompat.SetRaw(ev, key, value))
                     {
                         return false;
                     }
                     ev.disabled[key] = false;
+                }
+
+                if (!deferRealApply && isPositionTrackOffset)
+                {
+                    // Euclid's own tab can hide ADOFAI's event-properties panel. Hidden inputs cannot
+                    // receive Unity focus, but UpdatePropertyText can still synchronize them. Invoke
+                    // the already-wired ADOFAI onEndEdit listener directly so snapping uses the same
+                    // host PositionTrack commit logic instead of merely changing the marker/raw data.
+                    var hiddenTextSynced = false;
+                    try
+                    {
+                        hiddenTextSynced = GameCompat.TryUpdatePropertyText(editor, ev, key);
+                    }
+                    catch (Exception)
+                    {
+                        hiddenTextSynced = false;
+                    }
+
+                    if (hiddenTextSynced && PositionTrackSnapCommitSync.TryInvokeHiddenInspectorEndEdit(ev, key))
+                    {
+                        MarkUnsaved(editor);
+                        return true;
+                    }
                 }
 
                 if (!deferRealApply)
