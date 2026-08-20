@@ -25,8 +25,12 @@ namespace Euclid
 
         private static bool pending;
         private static int releaseAfterFrame = -1;
+        private static int settleThroughFrame = -1;
 
-        internal static bool IsPending => pending;
+        // Keep a one-frame barrier after releasing the inspector input. ADOFAI can rebuild the floor
+        // hierarchy at the end of that frame, and another snap calculated against the old transform is
+        // exactly what caused the occasional opposite-direction marker jump.
+        internal static bool IsPending => pending || Time.frameCount <= settleThroughFrame;
 
         internal static void Install()
         {
@@ -57,6 +61,7 @@ namespace Euclid
                 }
 
                 pending = true;
+                settleThroughFrame = -1;
                 // Keep the field alive for a full frame. PositionTrackFocusSync must see the new raw
                 // value while the real input is focused before ADOFAI receives the end-edit signal.
                 releaseAfterFrame = Time.frameCount + 1;
@@ -80,7 +85,7 @@ namespace Euclid
 
             if (!EuclidMod.Enabled)
             {
-                ReleaseNow();
+                ReleaseNow(settle: false);
                 return;
             }
 
@@ -96,26 +101,28 @@ namespace Euclid
                 return;
             }
 
-            ReleaseNow();
+            ReleaseNow(settle: true);
         }
 
         private void OnDisable()
         {
             if (pending)
             {
-                ReleaseNow();
+                ReleaseNow(settle: false);
             }
+            settleThroughFrame = -1;
         }
 
         private void OnDestroy()
         {
             if (pending)
             {
-                ReleaseNow();
+                ReleaseNow(settle: false);
             }
+            settleThroughFrame = -1;
         }
 
-        private static void ReleaseNow()
+        private static void ReleaseNow(bool settle)
         {
             try
             {
@@ -129,6 +136,7 @@ namespace Euclid
             {
                 pending = false;
                 releaseAfterFrame = -1;
+                settleThroughFrame = settle ? Time.frameCount + 1 : -1;
             }
         }
 
