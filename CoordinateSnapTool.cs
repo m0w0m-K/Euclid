@@ -131,7 +131,6 @@ namespace Euclid
             switch (eventName)
             {
                 case "MoveTrack":
-                case "MoveDecorations":
                     kind = EffectOverlayKind.TrackMove;
                     break;
                 case "PositionTrack":
@@ -397,6 +396,14 @@ namespace Euclid
                     return null;
                 }
 
+                // MoveDecorations can target multiple decorations and its spatial semantics depend
+                // on tags, relativeTo, parallax, depth, and prior decoration state. Euclid does not
+                // model it as a single coordinate target; leave the host editor as the source of truth.
+                if (string.Equals(ev.eventType.ToString(), "MoveDecorations", StringComparison.Ordinal))
+                {
+                    return null;
+                }
+
                 // ADOFAI can leave levelEventsPanel.selectedEvent pointing at the object that was
                 // just deleted. Reject that stale reference so PositionTrack/MoveTrack markers
                 // disappear as soon as the event is removed instead of lingering in the viewport.
@@ -592,7 +599,6 @@ namespace Euclid
                 case "MoveCamera":
                     return EuclidText.Get("effect.moveCamera");
                 case "MoveTrack":
-                case "MoveDecorations":
                     return EuclidText.Get("effect.moveTrack");
                 case "PositionTrack":
                     return EuclidText.Get("effect.positionTrack");
@@ -618,7 +624,12 @@ namespace Euclid
             }
 
             var eventName = ev.eventType.ToString();
-            if (eventName == "MoveTrack" || eventName == "MoveDecorations")
+            if (eventName == "MoveDecorations")
+            {
+                return false;
+            }
+
+            if (eventName == "MoveTrack")
             {
                 return true;
             }
