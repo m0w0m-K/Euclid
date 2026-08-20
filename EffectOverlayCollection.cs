@@ -167,7 +167,6 @@ namespace Euclid
             switch (eventName)
             {
                 case "MoveTrack":
-                case "MoveDecorations":
                     kind = EffectOverlayKind.TrackMove;
                     break;
                 case "PositionTrack":
@@ -243,7 +242,6 @@ namespace Euclid
                 case "MoveCamera":
                     return EuclidText.Get("effect.moveCamera");
                 case "MoveTrack":
-                case "MoveDecorations":
                     return EuclidText.Get("effect.moveTrack");
                 case "PositionTrack":
                     return EuclidText.Get("effect.positionTrack");
