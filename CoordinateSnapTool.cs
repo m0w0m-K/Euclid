@@ -639,11 +639,11 @@ namespace Euclid
 
             var reference = GetFloorPosition(editor, referenceFloor);
 
-            // ADOFAI's editor transform for ThisTile already contains the focused PositionTrack
-            // displacement. Recover the position that this tile would have if this event did not
-            // exist, then use that exact origin both for the reference marker and for converting a
-            // dragged/snapped world point back into positionOffset. Start/End must not subtract
-            // the offset even when the event happens to live on the first/last floor.
+            // For ThisTile, the visible floor transform is the already-positioned tile. The tile
+            // marker must represent where that tile would be at positionOffset = (0, 0), while the
+            // position marker must land on the tile's current visible position. Subtracting the raw
+            // offset here and adding it back in CoordinateTarget therefore gives exactly those two
+            // endpoints.
             if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
             {
                 reference -= offsetTiles * Mathf.Max(tileSize, 0.000001f);
@@ -711,6 +711,22 @@ namespace Euclid
             try
             {
                 var floors = GameCompat.GetFloors(editor);
+
+                // LevelEvent.floor is a floor/seqID value, not a reliable List index after editor
+                // insertions/rebuilds. Resolve the actual floor by seqID first so PositionTrack's
+                // zero-offset tile marker and current-position marker are anchored to the same tile.
+                for (var i = 0; i < floors.Count; i++)
+                {
+                    var candidate = floors[i];
+                    if (candidate != null && candidate.seqID == floor)
+                    {
+                        var position = candidate.transform.position;
+                        return new Vector2(position.x, position.y);
+                    }
+                }
+
+                // Keep index lookup only as a compatibility fallback for editor states where the
+                // requested value is known to be a list position (for example some Start/End paths).
                 if (floor >= 0 && floor < floors.Count && floors[floor] != null)
                 {
                     var position = floors[floor].transform.position;
