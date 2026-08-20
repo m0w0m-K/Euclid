@@ -26,6 +26,7 @@ namespace Euclid
         private object editorSettingsPanelIdentity;
         private string editorLevelPathKey;
         private bool editorMapReady;
+        private bool editorWasLoading;
 
         internal MeasureSnapshot Snapshot { get; private set; } = MeasureSnapshot.Unavailable("Not captured yet.");
 
@@ -73,6 +74,37 @@ namespace Euclid
         private void DetectEditorMapChange()
         {
             var editor = scnEditor.instance;
+
+            // scnEditor.isLoading is the authoritative level-load boundary in current ADOFAI.
+            // A new map can reuse the same scnEditor, LevelData and inspector objects while the old
+            // floors are still present, so object/path identity alone can miss the transition.
+            var loading = editor != null && GameCompat.IsEditorLoading(editor);
+            if (loading)
+            {
+                if (!editorWasLoading)
+                {
+                    ResetEditorMapLocalState();
+                }
+
+                editorWasLoading = true;
+                editorMapReady = false;
+                editorLevelIdentity = null;
+                editorSettingsPanelIdentity = null;
+                editorLevelPathKey = null;
+                return;
+            }
+
+            if (editorWasLoading)
+            {
+                // The previous frame belonged to the old/new-map load boundary. Do not compare the
+                // newly populated map against stale identity tokens; establish a fresh baseline below.
+                editorWasLoading = false;
+                editorMapReady = false;
+                editorLevelIdentity = null;
+                editorSettingsPanelIdentity = null;
+                editorLevelPathKey = null;
+            }
+
             var floors = GameCompat.GetFloors(editor);
             object levelData = null;
             var hasLevelData = editor != null &&
@@ -80,9 +112,9 @@ namespace Euclid
                 levelData != null;
             var ready = editor != null && hasLevelData && floors.Count > 0;
 
-            // Opening another map passes through a teardown/reload boundary even on game builds
-            // that reuse the same scnEditor or LevelData instance. Treat that boundary itself as a
-            // map change instead of deliberately carrying Euclid's construction geometry across it.
+            // Fallback for game versions where isLoading is absent or where a teardown makes the
+            // editor temporarily unavailable. This also prevents carrying map-local state through a
+            // full editor destruction/recreation.
             if (!ready)
             {
                 if (editorMapReady)
@@ -121,8 +153,6 @@ namespace Euclid
             else if (editorSettingsPanelIdentity != null && settingsPanel != null &&
                      !ReferenceEquals(editorSettingsPanelIdentity, settingsPanel))
             {
-                // Some editor builds recreate their inspector hierarchy when a different map opens
-                // while retaining/reusing LevelData. This is a useful secondary map-boundary token.
                 changed = true;
             }
 
@@ -142,6 +172,13 @@ namespace Euclid
         private void ResetEditorMapLocalState()
         {
             GuideLineTool.SnapSelectedShapeDrag = false;
+
+            // Clear the model immediately, then dirty the existing Canvas graphic immediately as
+            // well. Clearing only ConstructionShapeTool leaves the previous mesh/labels cached until
+            // some unrelated overlay refresh occurs, which looks exactly like the shapes survived.
+            ConstructionShapeTool.ClearAll();
+            ConstructionShapeCanvasOverlay.Refresh();
+
             internalPanel?.HandleEditorMapChanged();
             Snapshot = MeasureSnapshot.Unavailable("Map changed.");
             CameraFrame = CameraFrameSnapshot.Unavailable("Map changed.");
