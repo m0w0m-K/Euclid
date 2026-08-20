@@ -20,7 +20,6 @@ namespace Euclid
         private static bool showTrackMovePalette;
         private static bool showTrackPositionPalette;
         private static bool showFreeRoamPalette;
-        private static bool showDecorationMovePalette;
 
         internal static bool Enabled { get; private set; }
 
@@ -69,13 +68,6 @@ namespace Euclid
                         settings.FreeRoamSegmentColor,
                         settings.FreeRoamNameColor,
                         OverlaySettings.DefaultFreeRoamPalette);
-                case EffectOverlayKind.DecorationMove:
-                    return ResolvePalette(
-                        settings.DecorationMoveTileMarkerColor,
-                        settings.DecorationMovePositionMarkerColor,
-                        settings.DecorationMoveSegmentColor,
-                        settings.DecorationMoveNameColor,
-                        OverlaySettings.DefaultDecorationMovePalette);
                 default:
                     return OverlaySettings.DefaultTrackMovePalette;
             }
@@ -176,27 +168,11 @@ namespace Euclid
                 ref settings.FreeRoamNameColor,
                 OverlaySettings.DefaultFreeRoamPalette);
 
-            DrawCollapsibleEffectPalette(
-                ref showDecorationMovePalette,
-                GetDecorationMoveLabel(),
-                ref settings.DecorationMoveTileMarkerColor,
-                ref settings.DecorationMovePositionMarkerColor,
-                ref settings.DecorationMoveSegmentColor,
-                ref settings.DecorationMoveNameColor,
-                OverlaySettings.DefaultDecorationMovePalette);
-
             GUILayout.Label(EuclidText.Get("settings.colorHint"));
 
             // UMM invokes this every frame while Options is open. Dirtying the lower Canvas here
             // makes both the geometry and the preview swatches react immediately while typing.
             ConstructionShapeCanvasOverlay.Refresh();
-        }
-
-        private static string GetDecorationMoveLabel()
-        {
-            return string.Equals(EuclidText.CurrentLocaleCode, "ko", StringComparison.OrdinalIgnoreCase)
-                ? "장식 이동"
-                : "Move Decorations";
         }
 
         private static void OnSaveGui(UnityModManager.ModEntry entry)
@@ -319,11 +295,6 @@ namespace Euclid
                 ReadColor(json, nameof(OverlaySettings.FreeRoamSegmentColor), ref settings.FreeRoamSegmentColor);
                 ReadColor(json, nameof(OverlaySettings.FreeRoamNameColor), ref settings.FreeRoamNameColor);
 
-                ReadColor(json, nameof(OverlaySettings.DecorationMoveTileMarkerColor), ref settings.DecorationMoveTileMarkerColor);
-                ReadColor(json, nameof(OverlaySettings.DecorationMovePositionMarkerColor), ref settings.DecorationMovePositionMarkerColor);
-                ReadColor(json, nameof(OverlaySettings.DecorationMoveSegmentColor), ref settings.DecorationMoveSegmentColor);
-                ReadColor(json, nameof(OverlaySettings.DecorationMoveNameColor), ref settings.DecorationMoveNameColor);
-
                 // 0.7.48/0.7.49 stored one generic effect color. If present, use it as a migration
                 // fallback for target markers only; newer per-effect fields remain independent.
                 var legacy = ReadJsonString(json, "EffectMarkerColor", null);
@@ -373,10 +344,6 @@ namespace Euclid
                     JsonColor(nameof(OverlaySettings.FreeRoamPositionMarkerColor), settings.FreeRoamPositionMarkerColor),
                     JsonColor(nameof(OverlaySettings.FreeRoamSegmentColor), settings.FreeRoamSegmentColor),
                     JsonColor(nameof(OverlaySettings.FreeRoamNameColor), settings.FreeRoamNameColor),
-                    JsonColor(nameof(OverlaySettings.DecorationMoveTileMarkerColor), settings.DecorationMoveTileMarkerColor),
-                    JsonColor(nameof(OverlaySettings.DecorationMovePositionMarkerColor), settings.DecorationMovePositionMarkerColor),
-                    JsonColor(nameof(OverlaySettings.DecorationMoveSegmentColor), settings.DecorationMoveSegmentColor),
-                    JsonColor(nameof(OverlaySettings.DecorationMoveNameColor), settings.DecorationMoveNameColor),
                 };
 
                 File.WriteAllText(GetSettingsPath(), "{\n" + string.Join(",\n", lines) + "\n}\n");
@@ -502,12 +469,6 @@ namespace Euclid
                 ref settings.FreeRoamSegmentColor,
                 ref settings.FreeRoamNameColor,
                 OverlaySettings.DefaultFreeRoamPalette);
-            NormalizePalette(
-                ref settings.DecorationMoveTileMarkerColor,
-                ref settings.DecorationMovePositionMarkerColor,
-                ref settings.DecorationMoveSegmentColor,
-                ref settings.DecorationMoveNameColor,
-                OverlaySettings.DefaultDecorationMovePalette);
         }
 
         private static void NormalizePalette(
@@ -537,7 +498,6 @@ namespace Euclid
             internal static readonly EffectOverlayColors DefaultTrackMovePalette = SolidPalette(1f, 0.82f, 0.25f);
             internal static readonly EffectOverlayColors DefaultTrackPositionPalette = SolidPalette(0.28f, 1f, 0.42f);
             internal static readonly EffectOverlayColors DefaultFreeRoamPalette = SolidPalette(0.30f, 0.65f, 1f);
-            internal static readonly EffectOverlayColors DefaultDecorationMovePalette = SolidPalette(1f, 1f, 1f);
 
             public bool ShowCameraFrame = true;
             public string CameraFrameColor = "FF4D4DEB";
@@ -561,11 +521,6 @@ namespace Euclid
             public string FreeRoamPositionMarkerColor = "4DA6FFEB";
             public string FreeRoamSegmentColor = "4DA6FFEB";
             public string FreeRoamNameColor = "4DA6FFEB";
-
-            public string DecorationMoveTileMarkerColor = "FFFFFFEB";
-            public string DecorationMovePositionMarkerColor = "FFFFFFEB";
-            public string DecorationMoveSegmentColor = "FFFFFFEB";
-            public string DecorationMoveNameColor = "FFFFFFEB";
 
             internal static OverlaySettings CreateDefault() => new OverlaySettings();
 
