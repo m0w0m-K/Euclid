@@ -1,3 +1,6 @@
+<details open>
+<summary><strong>한국어</strong></summary>
+
 # 유클리드
 
 유클리드는 불과 얼음의 춤 에디터에서 작도, 좌표 확인, 이펙트 위치 시각화와 스냅을 도와주는 편집 보조 모드입니다.
@@ -148,3 +151,161 @@
 - 이펙트별 위치 좌표 마크 색상
 - 이펙트별 선분 색상
 - 이펙트별 이름 색상
+
+</details>
+
+<details>
+<summary><strong>English</strong></summary>
+
+# Euclid
+
+Euclid is an editor utility mod for A Dance of Fire and Ice that provides geometric construction tools, coordinate inspection, effect-position visualization, and snapping.
+
+## Features
+
+- Construct points, lines, and circles
+- Edit shape names, colors, and coordinates
+- Create intersections between shapes
+- Snap effect positions to constructed shapes
+- Visualize positions for Move Camera, Move Track, Position Track, and Free Roam sections
+- Move, zoom, and rotate the camera frame directly
+- Drag the position marker of the selected supported effect directly
+- Display position markers for all supported effects at once
+- Display line slope, y-intercept, angle, and circle radius
+
+## Euclid Tab
+
+Open the Euclid tab by clicking the `Å` icon added to the left side of the editor.
+
+### Shape List
+
+Shapes created in the current level are shown in the list.
+
+- Click: select a shape
+- Shift+Click: range selection
+- Ctrl+Click: add or remove individual shapes from the selection
+- On/Off: toggle whether the shape is visible in the editor
+
+Shapes created in the previous level are cleared when a new level is opened.
+
+The following actions are available below the list.
+
+- Add: creates a new shape.
+- Delete: deletes the selected shapes.
+- Create Intersections: creates point shapes at intersections between the selected shapes.
+- Snap: moves the current effect position using one selected shape as the snapping target.
+
+## Shape Info
+
+Selecting a shape opens the Shape Info panel on the right side of the screen.
+
+### Name
+
+You can assign a custom name to each shape.
+
+### Type
+
+Three shape types are available.
+
+- Point: uses only the first point.
+- Line: creates an infinite line through the first and second points.
+- Circle: creates a circle centered on the first point and passing through the second point.
+
+### First and Second Points
+
+Coordinates can be entered directly, or copied from an editor tile or an existing point shape using the `Select` button.
+
+A normal selection copies the current coordinates once. The shape does not follow the source tile or point if it moves later.
+
+When `Pin` is enabled, the selected tile or point becomes a live reference. If the source position changes, the corresponding point of the shape follows it.
+
+For point shapes, the second-point controls remain visible but are disabled.
+
+### Color
+
+Each shape can have its own color.
+
+Hexadecimal color values including red, green, blue, and alpha channels are supported.
+
+### Shape Values
+
+Lines display the following values.
+
+- `a`: slope
+- `b`: y-intercept
+- `θ`: line direction angle
+
+Circles display the following value.
+
+- `r`: radius
+
+Because a line has no intrinsic direction, its angle is displayed in the range from 0 degrees inclusive to 180 degrees exclusive.
+
+## Effect Position Visualization
+
+When a supported effect is selected, Euclid displays the positional relationship of that effect in the editor.
+
+The default visualization consists of:
+
+- Tile position marker: the reference position before the current effect's position offset is applied
+- Position coordinate marker: the position actually specified by the effect
+- Segment: the displacement between the two positions
+- Name: the type of effect currently being visualized
+
+The position coordinate marker can be dragged directly to change the effect position.
+
+If one construction shape is selected and snapping is enabled, the dragged position can also snap to that shape.
+
+Supported effects are Move Camera, Move Track, Position Track, and Free Roam sections.
+
+## Move Camera Frame
+
+Selecting a Move Camera effect displays a camera frame that reflects its position, zoom, and rotation.
+
+The frame can be manipulated directly in the editor.
+
+- Drag the center handle: move the camera position
+- Drag any of the four corner handles: adjust zoom
+- Drag the upper rotation handle: adjust camera rotation
+
+Even if the zoom or rotation property is disabled on the current effect, moving its handle starts editing from the value currently in effect.
+
+## Position Track Effect
+
+- Tile position marker: the tile position before the current Position Track effect itself is applied
+- Position coordinate marker: the final position after the current Position Track effect is applied
+
+When `positionOffset` is disabled, the stored raw offset value is preserved, but the visualization treats the effective offset as zero. The tile position marker and position coordinate marker therefore appear together at the restored tile position.
+
+## Show All Effect Markers
+
+Enable `Show All Effect Markers` in the Unity Mod Manager options to display position markers for all supported effects in the level, not only the currently selected effect.
+
+Because this can display many effects at once, performance may decrease slightly on levels with a very large number of effects.
+
+This option is disabled by default.
+
+## Default Effect Colors
+
+Default colors are assigned by effect type so different effects remain easy to distinguish when displayed together.
+
+- Move Camera: red
+- Move Track: yellow
+- Position Track: green
+- Free Roam: blue
+
+In the default palette, the tile position marker, position coordinate marker, segment, and name use the same color family and opacity within each effect type. Their roles are distinguished by marker shape.
+
+## Options
+
+The following settings are available in the Unity Mod Manager options window.
+
+- Show or hide the camera frame
+- Show or hide all effect markers
+- Camera frame color
+- Tile position marker color for each effect type
+- Position coordinate marker color for each effect type
+- Segment color for each effect type
+- Name color for each effect type
+
+</details>
