@@ -1,25 +1,34 @@
 using System;
 using System.Reflection;
 using ADOFAI;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Euclid
 {
     // Programmatic PositionTrack snaps must reproduce the same order as a real inspector edit:
     //   focus OLD value -> change raw value while focused -> update inspector text -> end edit.
     //
-    // Focusing only after the raw value changed does not reliably trigger ADOFAI's PositionTrack
-    // commit path, because the input begins its edit already containing the new value. It also means
-    // PositionTrackFocusSync never observes "raw changed while focused", which is the state needed to
-    // preserve the pre-effect tile/reference origin. This component now owns that ordering explicitly.
+    // When Euclid's own panel is open, ADOFAI's event-properties panel can be inactive, so the real
+    // input cannot receive Unity focus. In that case we still resolve the hidden positionOffset input
+    // and invoke its normal onEndEdit callback after its text has been synchronized. That reuses the
+    // host editor's actual PositionTrack commit handler instead of guessing which rebuild method to call.
     [DefaultExecutionOrder(10000)]
     internal sealed class PositionTrackSnapCommitSync : MonoBehaviour
     {
-        private static readonly MethodInfo FocusMethod = typeof(PositionTrackMarkerDragFocus).GetMethod(
+        private static readonly Type MarkerDragFocusType = typeof(PositionTrackMarkerDragFocus);
+        private static readonly MethodInfo FocusMethod = MarkerDragFocusType.GetMethod(
             "TryFocusPositionOffsetInput",
             BindingFlags.Static | BindingFlags.NonPublic);
-        private static readonly MethodInfo ReleaseMethod = typeof(PositionTrackMarkerDragFocus).GetMethod(
+        private static readonly MethodInfo ReleaseMethod = MarkerDragFocusType.GetMethod(
             "ReleaseOwnedInput",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo ResolvePropertyRootMethod = MarkerDragFocusType.GetMethod(
+            "ResolveSelectedEventPropertyRoot",
+            BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo ScoreInputMethod = MarkerDragFocusType.GetMethod(
+            "ScoreInput",
             BindingFlags.Static | BindingFlags.NonPublic);
         private static readonly FieldInfo PositionOffsetDraggingField = typeof(CameraFrameOverlay).GetField(
             "draggingPositionOffset",
@@ -78,6 +87,92 @@ namespace Euclid
                 ResetPendingState();
                 return false;
             }
+        }
+
+        // Fallback for the common case where Euclid's panel has hidden ADOFAI's event inspector.
+        // GameCompat.TryUpdatePropertyText must be called first so both coordinate fields contain the
+        // new raw value. We then invoke the exact input's existing ADOFAI end-edit listeners even
+        // though the GameObject is inactive.
+        internal static bool TryInvokeHiddenInspectorEndEdit(LevelEvent ev, string key)
+        {
+            if (ev == null || ev.eventType != LevelEventType.PositionTrack ||
+                !string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase) ||
+                ResolvePropertyRootMethod == null || ScoreInputMethod == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var rootObject = ResolvePropertyRootMethod.Invoke(null, new object[] { scnEditor.instance, ev });
+                if (!(rootObject is Component root))
+                {
+                    return false;
+                }
+
+                var rawOffset = ReadOffset(ev);
+                Component best = null;
+                var bestScore = int.MinValue;
+
+                var tmpInputs = root.GetComponentsInChildren<TMP_InputField>(true);
+                for (var i = 0; i < tmpInputs.Length; i++)
+                {
+                    var input = tmpInputs[i];
+                    if (input == null)
+                    {
+                        continue;
+                    }
+
+                    var score = InvokeScore(input, root.transform, input.text, rawOffset);
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        best = input;
+                    }
+                }
+
+                var legacyInputs = root.GetComponentsInChildren<InputField>(true);
+                for (var i = 0; i < legacyInputs.Length; i++)
+                {
+                    var input = legacyInputs[i];
+                    if (input == null)
+                    {
+                        continue;
+                    }
+
+                    var score = InvokeScore(input, root.transform, input.text, rawOffset);
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        best = input;
+                    }
+                }
+
+                if (best == null || bestScore < 250)
+                {
+                    return false;
+                }
+
+                if (best is TMP_InputField tmp)
+                {
+                    tmp.onEndEdit.Invoke(tmp.text);
+                    settleThroughFrame = Time.frameCount + 2;
+                    return true;
+                }
+
+                if (best is InputField legacy)
+                {
+                    legacy.onEndEdit.Invoke(legacy.text);
+                    settleThroughFrame = Time.frameCount + 2;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                EuclidMod.Logger?.Log("PositionTrack hidden inspector commit failed: " + ex.Message);
+            }
+
+            return false;
         }
 
         // Call after the raw value and inspector text have both been updated. Keep the input focused
@@ -166,6 +261,31 @@ namespace Euclid
                 releaseArmed = false;
                 releaseAfterFrame = -1;
                 settleThroughFrame = settle ? Time.frameCount + 2 : -1;
+            }
+        }
+
+        private static int InvokeScore(Component input, Transform root, string text, Vector2 offset)
+        {
+            try
+            {
+                var raw = ScoreInputMethod.Invoke(null, new object[] { input, root, text, offset });
+                return raw is int score ? score : int.MinValue;
+            }
+            catch (Exception)
+            {
+                return int.MinValue;
+            }
+        }
+
+        private static Vector2 ReadOffset(LevelEvent ev)
+        {
+            try
+            {
+                return ev.Get<Vector2>("positionOffset");
+            }
+            catch (Exception)
+            {
+                return Vector2.zero;
             }
         }
 
