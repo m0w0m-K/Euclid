@@ -279,6 +279,9 @@ namespace Euclid
             }
 
             ClearChildren(detailContent);
+            shapeFirstPinText = null;
+            shapeSecondPinText = null;
+
             var shape = ConstructionShapeTool.PrimarySelectedShape;
             if (shape == null)
             {
@@ -359,42 +362,30 @@ namespace Euclid
         {
             AddLabel(EuclidText.Get("label.shapeType"), LabelTextSize, FontStyle.Bold);
             var row = AddRow();
-            var buttons = new Dictionary<ConstructionShapeType, TMP_Text>();
-            AddShapeTypeButton(row, shape, ConstructionShapeType.Point, buttons);
-            AddShapeTypeButton(row, shape, ConstructionShapeType.Line, buttons);
-            AddShapeTypeButton(row, shape, ConstructionShapeType.Circle, buttons);
+            AddShapeTypeButton(row, shape, ConstructionShapeType.Point);
+            AddShapeTypeButton(row, shape, ConstructionShapeType.Line);
+            AddShapeTypeButton(row, shape, ConstructionShapeType.Circle);
         }
 
         private void AddShapeTypeButton(
             RectTransform row,
             ConstructionShape shape,
-            ConstructionShapeType type,
-            Dictionary<ConstructionShapeType, TMP_Text> buttons)
+            ConstructionShapeType type)
         {
             var label = ConstructionShapeTool.GetTypeLabel(type);
             var initialSurface = shape.Type == type ? ButtonSurface.Filled : ButtonSurface.Outline;
-            var text = AddButton(row, label, () =>
+            AddButton(row, label, () =>
             {
                 ConstructionShapeTool.SetType(shape, type);
                 ConstructionShapeTool.DrawShape(shape);
                 ConstructionShapeCanvasOverlay.Refresh();
-                RefreshShapeTypeButtons(buttons, shape);
                 RefreshShapeListSelectionButtons();
-                // Point and line/circle have different endpoint rows, so rebuild the detail
-                // content immediately when the type changes.
+                // Rebuild directly into the final type state. Updating the soon-to-be-destroyed old
+                // type buttons first only exposed an intermediate state and caused visible flashing.
                 BuildDetailPanelContent();
                 RefreshShapeActionButtons();
                 RefreshTexts();
             }, 0f, initialSurface);
-            buttons[type] = text;
-        }
-
-        private void RefreshShapeTypeButtons(Dictionary<ConstructionShapeType, TMP_Text> buttons, ConstructionShape shape)
-        {
-            foreach (var pair in buttons)
-            {
-                SetToggleButtonState(pair.Value, ConstructionShapeTool.GetTypeLabel(pair.Key), shape.Type == pair.Key);
-            }
         }
 
         private void AddShapeGeometryInfo(ConstructionShape shape)
@@ -588,7 +579,7 @@ namespace Euclid
             layout.childControlWidth = true;
             layout.childForceExpandWidth = false;
             layout.childControlHeight = true;
-            layout.childForceExpandHeight = true;
+            layout.childForceExpandHeight = false;
             var element = obj.GetComponent<LayoutElement>();
             element.minHeight = height;
             element.preferredHeight = height;
@@ -613,13 +604,13 @@ namespace Euclid
         {
             var root = new GameObject("Slider", typeof(RectTransform), typeof(Slider), typeof(LayoutElement));
             root.transform.SetParent(parent, false);
-            var rootRect = root.GetComponent<RectTransform>();
             var layout = root.GetComponent<LayoutElement>();
             layout.minWidth = 180f;
             layout.preferredWidth = 220f;
             layout.flexibleWidth = 1f;
-            layout.minHeight = 16f;
-            layout.preferredHeight = 16f;
+            layout.minHeight = 20f;
+            layout.preferredHeight = 20f;
+            layout.flexibleHeight = 0f;
 
             var bgObj = new GameObject("Background", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             bgObj.transform.SetParent(root.transform, false);
@@ -638,8 +629,14 @@ namespace Euclid
             var handleObj = new GameObject("Handle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             handleObj.transform.SetParent(handleArea.transform, false);
             var handleRect = handleObj.GetComponent<RectTransform>();
-            // Keep the thumb compact so it reads as a slider handle instead of a tall bar.
-            handleRect.sizeDelta = new Vector2(10f, 8f);
+            var handleAnchorMin = handleRect.anchorMin;
+            var handleAnchorMax = handleRect.anchorMax;
+            handleAnchorMin.y = 0.5f;
+            handleAnchorMax.y = 0.5f;
+            handleRect.anchorMin = handleAnchorMin;
+            handleRect.anchorMax = handleAnchorMax;
+            handleRect.pivot = new Vector2(handleRect.pivot.x, 0.5f);
+            handleRect.sizeDelta = new Vector2(10f, 12f);
             var handle = handleObj.GetComponent<Image>();
             handle.color = Color.white;
 
@@ -721,7 +718,8 @@ namespace Euclid
             var point = ConstructionShapeTool.GetPointForDisplay(shape, pointIndex);
 
             // The source is displayed in the heading instead of consuming another column in the
-            // compact editor row. This keeps the controls exactly: Select | X | value | Y | value.
+            // compact editor row. Endpoint action controls are created together so the layout never
+            // has to insert PIN a frame later: Select | Pin | X | value | Y | value.
             var sourceText = AddShapePointHeader(pointIndex, point);
 
             var row = AddCompactRow(CurrentRowHeight, 5f);
@@ -731,6 +729,21 @@ namespace Euclid
                 () => BeginPointPick(shape, pointIndex),
                 64f,
                 ButtonSurface.Outline);
+            var pinText = AddButton(
+                row,
+                PointPinLabel(),
+                () => TogglePointPin(shape, pointIndex),
+                64f,
+                ButtonSurface.Outline);
+
+            if (pointIndex == 0)
+            {
+                shapeFirstPinText = pinText;
+            }
+            else
+            {
+                shapeSecondPinText = pinText;
+            }
 
             AddSmallLabel(row, "X", 14f);
             var xField = AddInput(row, ConstructionShapeTool.Format(point.X), 0f);
@@ -739,24 +752,30 @@ namespace Euclid
 
             StoreShapePointFields(pointIndex, pickText, sourceText, xField, yField);
 
+            var picking = enabled && pendingPointPickShape == shape && pendingPointPickIndex == pointIndex;
+            SetToggleButtonState(pickText, EuclidText.Get("button.pickPosition"), picking, enabled);
+
+            var canPin = enabled && HasBindableSource(point);
+            var pinned = false;
+            if (canPin && pointBindings.TryGetValue(PointBindingKey(shape, pointIndex), out var binding) && binding != null)
+            {
+                pinned = binding.Pinned;
+            }
+            SetToggleButtonState(pinText, PointPinLabel(), pinned, canPin);
+
             if (!enabled)
             {
                 // Point shapes do not consume P2. Leave the row in place so the panel does not
-                // jump vertically, but make every P2 control non-interactive and visually muted.
+                // jump vertically, but construct every P2 control directly in its final disabled
+                // state instead of starting enabled and fading to disabled after the rebuild.
                 if (pointIndex == 1 && sourceText != null)
                 {
                     sourceText.text = EuclidText.Get("label.secondPoint");
                     sourceText.color = new Color(sourceText.color.r, sourceText.color.g, sourceText.color.b, 0.45f);
                 }
 
-                var pickButton = FindButton(pickText);
-                if (pickButton != null)
-                {
-                    pickButton.interactable = false;
-                }
-                SetButtonTextColor(pickText, ButtonSurface.Outline, enabled: false);
-                xField.interactable = false;
-                yField.interactable = false;
+                SetInputInteractableImmediate(xField, false);
+                SetInputInteractableImmediate(yField, false);
                 return;
             }
 
