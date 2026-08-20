@@ -19,9 +19,12 @@ namespace Euclid
         private static string cachedTargetKey;
         private static double cachedGuideParameter;
 
-        // PositionTrack updates positionOffset before ADOFAI necessarily reapplies the floor
-        // transform. Keep the zero-offset origin stable while raw inspector/drag values are ahead
-        // of the displayed tile, then resynchronize from the applied tile once the floor catches up.
+        // PositionTrack has two values that must not be conflated:
+        //   raw positionOffset       = the value stored in the event
+        //   effective positionOffset = raw while the property is enabled, otherwise zero
+        // ADOFAI can update either value before its floor transform catches up. Keep the last
+        // applied effective offset/floor here so pending edits and property on/off transitions can
+        // preview against a stable pre-event origin without moving the tile marker backwards.
         private const float PositionTrackSyncToleranceSqr = 0.0001f;
         private static bool hasPositionTrackReference;
         private static LevelEvent positionTrackReferenceEvent;
@@ -541,20 +544,39 @@ namespace Euclid
                 return false;
             }
 
-            if (!TryGetVector2(ev, "positionOffset", out var offsetTiles))
+            // Prefer the stored raw value. Typed/default fallbacks can be transient while ADOFAI is
+            // rebuilding the inspector, so only a raw read is considered reliable for establishing
+            // a brand-new PositionTrack reference cache.
+            var offsetReliable = false;
+            Vector2 rawOffsetTiles;
+            if (LevelEventCompat.TryGetRaw(ev, "positionOffset", out var raw) &&
+                TryConvertVector2(raw, out rawOffsetTiles))
             {
-                offsetTiles = GetDefaultVector2(ev, "positionOffset");
+                offsetReliable = true;
             }
+            else if (!TryGetVector2(ev, "positionOffset", out rawOffsetTiles))
+            {
+                rawOffsetTiles = GetDefaultVector2(ev, "positionOffset");
+            }
+
+            var effectiveOffsetTiles = LevelEventCompat.IsPropertyEnabled(ev, "positionOffset")
+                ? rawOffsetTiles
+                : Vector2.zero;
 
             var editor = scnEditor.instance;
             var tileSize = GetTileSize();
-            var referencePoint = GetPositionOffsetReferencePoint(editor, ev, offsetTiles, tileSize);
+            var referencePoint = GetPositionOffsetReferencePoint(
+                editor,
+                ev,
+                effectiveOffsetTiles,
+                tileSize,
+                offsetReliable);
             target = CoordinateTarget.ForTileOffsetEventProperty(
                 ev,
                 "positionOffset",
                 referencePoint,
                 tileSize,
-                offsetTiles,
+                effectiveOffsetTiles,
                 GetEffectDisplayName(ev));
             return true;
         }
@@ -627,8 +649,9 @@ namespace Euclid
         private static Vector2 GetPositionOffsetReferencePoint(
             scnEditor editor,
             LevelEvent ev,
-            Vector2 offsetTiles,
-            float tileSize)
+            Vector2 effectiveOffsetTiles,
+            float tileSize,
+            bool offsetReliable)
         {
             if (!IsPositionTrack(ev))
             {
@@ -655,8 +678,7 @@ namespace Euclid
             {
                 if (ReferenceEquals(positionTrackReferenceEvent, ev))
                 {
-                    hasPositionTrackReference = false;
-                    positionTrackReferenceProvisional = false;
+                    ResetPositionTrackReference();
                 }
                 return displayedFloorWorld;
             }
@@ -665,16 +687,18 @@ namespace Euclid
                 ev,
                 referenceFloor,
                 displayedFloorWorld,
-                offsetTiles,
-                tileSize);
+                effectiveOffsetTiles,
+                tileSize,
+                offsetReliable);
         }
 
         private static Vector2 GetStablePositionTrackThisTileReference(
             LevelEvent ev,
             int referenceFloor,
             Vector2 displayedFloorWorld,
-            Vector2 rawOffsetTiles,
-            float tileSize)
+            Vector2 effectiveOffsetTiles,
+            float tileSize,
+            bool offsetReliable)
         {
             var scale = Mathf.Max(tileSize, 0.000001f);
             var cacheMatches = hasPositionTrackReference &&
@@ -688,66 +712,108 @@ namespace Euclid
                 positionTrackReferenceEvent = ev;
                 positionTrackReferenceFloor = referenceFloor;
                 positionTrackReferenceTileSize = scale;
-                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-                positionTrackAppliedOffsetTiles = rawOffsetTiles;
+                positionTrackZeroReference = displayedFloorWorld - effectiveOffsetTiles * scale;
+                positionTrackAppliedOffsetTiles = effectiveOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
 
-                // The inspector can briefly expose (0, 0) immediately after selecting an event
-                // before its real positionOffset is available. Allow exactly one raw-only rebase
-                // in that initial state; later raw-only changes are real pending edits.
-                positionTrackReferenceProvisional = rawOffsetTiles.sqrMagnitude <= 0.00000001f;
+                // Only a fallback/default read is provisional. A real stored (0,0) offset is a
+                // perfectly valid applied value and must not be mistaken for a late inspector sync.
+                positionTrackReferenceProvisional = !offsetReliable;
                 return positionTrackZeroReference;
             }
 
-            var rawChanged =
-                (rawOffsetTiles - positionTrackAppliedOffsetTiles).sqrMagnitude > 0.00000001f;
+            var offsetChanged =
+                (effectiveOffsetTiles - positionTrackAppliedOffsetTiles).sqrMagnitude > 0.00000001f;
             var floorChanged =
                 (displayedFloorWorld - positionTrackAppliedFloorWorld).sqrMagnitude > PositionTrackSyncToleranceSqr;
 
-            if (positionTrackReferenceProvisional && rawChanged && !floorChanged)
+            if (positionTrackReferenceProvisional && offsetReliable && offsetChanged && !floorChanged)
             {
-                // Late synchronization after selecting PositionTrack. The tile is already at the
-                // applied position, so use the first real offset to establish the true zero origin.
-                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-                positionTrackAppliedOffsetTiles = rawOffsetTiles;
-                positionTrackAppliedFloorWorld = displayedFloorWorld;
+                // The first reliable stored offset arrived after a provisional inspector/default
+                // read. The displayed floor already contains that offset, so establish the real
+                // zero-origin from the applied floor exactly once.
+                SyncPositionTrackAppliedState(
+                    ev,
+                    referenceFloor,
+                    scale,
+                    displayedFloorWorld - effectiveOffsetTiles * scale,
+                    effectiveOffsetTiles,
+                    displayedFloorWorld);
+                return positionTrackZeroReference;
+            }
+
+            if (offsetChanged && !floorChanged)
+            {
+                // Raw edit, snap preview, or property on/off changed before ADOFAI moved the floor.
+                // Keep the pre-event origin stable; only the target marker previews the new effective
+                // offset. Do not consume the offset as "applied" until the floor catches up.
                 positionTrackReferenceProvisional = false;
                 return positionTrackZeroReference;
             }
 
-            if (rawChanged && !floorChanged)
+            if (offsetChanged && floorChanged)
             {
-                // positionOffset changed first, but ADOFAI has not moved the floor yet. Keep the
-                // tile marker at the last applied zero-origin while the position marker previews
-                // the new raw offset immediately.
-                positionTrackReferenceProvisional = false;
+                // ADOFAI has applied the new effective state. Disabled positionOffset has an
+                // effective offset of zero, so both markers naturally land on the restored tile.
+                SyncPositionTrackAppliedState(
+                    ev,
+                    referenceFloor,
+                    scale,
+                    displayedFloorWorld - effectiveOffsetTiles * scale,
+                    effectiveOffsetTiles,
+                    displayedFloorWorld);
                 return positionTrackZeroReference;
             }
 
-            if (rawChanged && floorChanged)
+            if (!offsetChanged && floorChanged)
             {
-                // Focus loss/application: the displayed floor now contains the current PositionTrack
-                // offset. Remove exactly that offset to recover the pre-effect tile position. This
-                // makes the position marker land on the actual tile while the tile marker remains at
-                // the position the tile occupied before this PositionTrack was applied.
-                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-                positionTrackAppliedOffsetTiles = rawOffsetTiles;
-                positionTrackAppliedFloorWorld = displayedFloorWorld;
-                positionTrackReferenceProvisional = false;
-                return positionTrackZeroReference;
-            }
-
-            if (!rawChanged && floorChanged)
-            {
-                // An earlier track/path effect moved this tile while the current PositionTrack offset
-                // stayed unchanged. Re-derive the zero-origin from the new applied tile position so
-                // upstream movement is followed while this event's own offset is still removed.
-                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-                positionTrackAppliedFloorWorld = displayedFloorWorld;
+                // Earlier track/path movement changed the applied tile while this PositionTrack's
+                // effective state stayed the same. Follow that movement and remove only the active
+                // effective offset (zero when the property is disabled).
+                SyncPositionTrackAppliedState(
+                    ev,
+                    referenceFloor,
+                    scale,
+                    displayedFloorWorld - effectiveOffsetTiles * scale,
+                    effectiveOffsetTiles,
+                    displayedFloorWorld);
             }
 
             positionTrackReferenceProvisional = false;
             return positionTrackZeroReference;
+        }
+
+        // PositionTrackFocusSync and the direct-apply compatibility fallback both observe host
+        // editor state outside this class. They publish an already-applied state through this one
+        // method instead of reflecting into individual cache fields.
+        internal static void SyncPositionTrackAppliedState(
+            LevelEvent ev,
+            int referenceFloor,
+            float tileSize,
+            Vector2 zeroReference,
+            Vector2 appliedEffectiveOffsetTiles,
+            Vector2 appliedFloorWorld)
+        {
+            hasPositionTrackReference = true;
+            positionTrackReferenceEvent = ev;
+            positionTrackReferenceFloor = referenceFloor;
+            positionTrackReferenceTileSize = Mathf.Max(tileSize, 0.000001f);
+            positionTrackZeroReference = zeroReference;
+            positionTrackAppliedOffsetTiles = appliedEffectiveOffsetTiles;
+            positionTrackAppliedFloorWorld = appliedFloorWorld;
+            positionTrackReferenceProvisional = false;
+        }
+
+        internal static void ResetPositionTrackReference()
+        {
+            hasPositionTrackReference = false;
+            positionTrackReferenceEvent = null;
+            positionTrackReferenceFloor = 0;
+            positionTrackReferenceTileSize = 0f;
+            positionTrackZeroReference = Vector2.zero;
+            positionTrackAppliedOffsetTiles = Vector2.zero;
+            positionTrackAppliedFloorWorld = Vector2.zero;
+            positionTrackReferenceProvisional = false;
         }
 
         private static string GetTileRelativeTo(LevelEvent ev)
