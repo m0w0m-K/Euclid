@@ -133,44 +133,46 @@ namespace Euclid
                         changed = true;
                     }
 
-                    if (!changed)
+                    if (changed)
                     {
-                        continue;
+                        point.X = sourceX;
+                        point.Y = sourceY;
+                        if (state.SourceKind == ConstructionPointSourceKind.Tile)
+                        {
+                            point.HasTile = true;
+                            point.Tile = currentTileSeqId;
+                        }
+
+                        ConstructionShapeTool.SetPoint(shape, pointIndex, point);
+                        ConstructionShapeTool.DrawShape(shape);
+                        anyGeometryChanged = true;
+                        if (selectedShape == shape)
+                        {
+                            selectedShapeChanged = true;
+                        }
                     }
 
-                    point.X = sourceX;
-                    point.Y = sourceY;
-                    if (state.SourceKind == ConstructionPointSourceKind.Tile)
-                    {
-                        point.HasTile = true;
-                        point.Tile = currentTileSeqId;
-                    }
-
-                    ConstructionShapeTool.SetPoint(shape, pointIndex, point);
-                    ConstructionShapeTool.DrawShape(shape);
-                    anyGeometryChanged = true;
-                    if (selectedShape == shape)
-                    {
-                        selectedShapeChanged = true;
-                    }
+                    // Keep a rolling snapshot while PIN is on. This lets us distinguish a normal
+                    // seqID/position change of the same source from the user picking a different
+                    // source between frames.
+                    state.SnapshotX = sourceX;
+                    state.SnapshotY = sourceY;
+                    state.SnapshotTileSeqId = currentTileSeqId;
                 }
             }
 
-            if (pointBindings.Count > liveKeys.Count)
+            var stale = new List<long>();
+            foreach (var pair in pointBindings)
             {
-                var stale = new List<long>();
-                foreach (var pair in pointBindings)
+                if (!liveKeys.Contains(pair.Key) || pair.Value == null || !ContainsShape(shapes, pair.Value.Shape))
                 {
-                    if (!liveKeys.Contains(pair.Key) || pair.Value == null || !ContainsShape(shapes, pair.Value.Shape))
-                    {
-                        stale.Add(pair.Key);
-                    }
+                    stale.Add(pair.Key);
                 }
+            }
 
-                for (var i = 0; i < stale.Count; i++)
-                {
-                    pointBindings.Remove(stale[i]);
-                }
+            for (var i = 0; i < stale.Count; i++)
+            {
+                pointBindings.Remove(stale[i]);
             }
 
             if (anyGeometryChanged)
@@ -182,9 +184,9 @@ namespace Euclid
             if (selectedShapeChanged && selectedShape != null)
             {
                 // Keep X/Y, the P1/P2 source label, and derived a/b/theta/r in the same frame as
-                // the rendered geometry. This avoids a live-pinned line moving while Shape Info
-                // still shows the previous values.
-                RefreshShapePointEditors(selectedShape);
+                // the rendered geometry. Use SetTextWithoutNotify here: setting X then Y through
+                // normal TMP callbacks would briefly look like a manual edit and detach the source.
+                RefreshPointBindingFields(selectedShape);
                 RefreshShapeGeometryInfo(selectedShape);
             }
         }
@@ -311,7 +313,7 @@ namespace Euclid
                 if (state == null)
                 {
                     ConstructionShapeTool.ClearPointSource(shape, pointIndex);
-                    RefreshShapePointEditors(shape);
+                    RefreshPointBindingFields(shape);
                     RefreshPointBindingButtons();
                     return;
                 }
@@ -322,7 +324,7 @@ namespace Euclid
             {
                 ConstructionShapeTool.ClearPointSource(shape, pointIndex);
                 pointBindings.Remove(key);
-                RefreshShapePointEditors(shape);
+                RefreshPointBindingFields(shape);
                 RefreshPointBindingButtons();
                 return;
             }
@@ -341,8 +343,11 @@ namespace Euclid
                 }
                 ConstructionShapeTool.SetPoint(shape, pointIndex, point);
                 ConstructionShapeTool.DrawShape(shape);
+                state.SnapshotX = sourceX;
+                state.SnapshotY = sourceY;
+                state.SnapshotTileSeqId = currentTileSeqId;
                 ConstructionShapeCanvasOverlay.Refresh();
-                RefreshShapePointEditors(shape);
+                RefreshPointBindingFields(shape);
                 RefreshShapeGeometryInfo(shape);
             }
             else
@@ -355,6 +360,54 @@ namespace Euclid
             }
 
             RefreshPointBindingButtons();
+        }
+
+        private void RefreshPointBindingFields(ConstructionShape shape)
+        {
+            if (shape == null || ConstructionShapeTool.PrimarySelectedShape != shape)
+            {
+                return;
+            }
+
+            RefreshPointBindingField(
+                shape,
+                0,
+                shapeFirstSourceText,
+                shapeFirstX,
+                shapeFirstY);
+            RefreshPointBindingField(
+                shape,
+                1,
+                shapeSecondSourceText,
+                shapeSecondX,
+                shapeSecondY);
+        }
+
+        private static void RefreshPointBindingField(
+            ConstructionShape shape,
+            int pointIndex,
+            TMP_Text sourceText,
+            TMP_InputField xField,
+            TMP_InputField yField)
+        {
+            if (shape == null)
+            {
+                return;
+            }
+
+            var point = ConstructionShapeTool.GetPointForDisplay(shape, pointIndex);
+            if (sourceText != null)
+            {
+                sourceText.text = PointHeaderLabel(pointIndex, point);
+            }
+            if (xField != null)
+            {
+                xField.SetTextWithoutNotify(ConstructionShapeTool.Format(point.X));
+            }
+            if (yField != null)
+            {
+                yField.SetTextWithoutNotify(ConstructionShapeTool.Format(point.Y));
+            }
         }
 
         private PointBindingState CreatePointBinding(
@@ -400,9 +453,20 @@ namespace Euclid
 
             if (point.SourceKind == ConstructionPointSourceKind.Tile)
             {
-                // While pinned, the source floor's seqID is allowed to change. The floor object is
-                // the stable identity; the integer is only the current label shown in Shape Info.
-                return state.SourceTile != null || state.SnapshotTileSeqId == point.Tile;
+                var matchesSnapshot = point.Tile == state.SnapshotTileSeqId &&
+                    Math.Abs(point.X - state.SnapshotX) <= 0.0000001d &&
+                    Math.Abs(point.Y - state.SnapshotY) <= 0.0000001d;
+                if (!state.Pinned)
+                {
+                    return matchesSnapshot;
+                }
+
+                // While PIN is on, the source floor may already have received its new seqID before
+                // this LateUpdate runs. Accept either the rolling snapshot from the prior frame or
+                // the floor's current seqID; a freshly picked different tile matches neither in the
+                // normal case and therefore starts a new, unpinned binding.
+                return matchesSnapshot ||
+                    (state.SourceTile != null && point.Tile == state.SourceTile.seqID);
             }
 
             return false;
