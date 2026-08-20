@@ -8,7 +8,7 @@ namespace Euclid
     internal static class EuclidMod
     {
         private const string SettingsFileName = "Settings.json";
-        private static readonly Color DefaultCameraFrameColor = new Color(1f, 0.83f, 0.18f, 0.95f);
+        private static readonly Color DefaultCameraFrameColor = new Color(1f, 0.22f, 0.22f, 0.95f);
 
         private static EuclidBehaviour behaviour;
         private static UnityModManager.ModEntry modEntry;
@@ -466,49 +466,51 @@ namespace Euclid
         [Serializable]
         private sealed class OverlaySettings
         {
+            // Each effect owns one hue family so dense all-effect overlays stay readable at a glance.
+            // Within a family, marker/segment/label variants differ in lightness and alpha.
             internal static readonly EffectOverlayColors DefaultCameraMovePalette = new EffectOverlayColors(
-                new Color(0.35f, 0.75f, 1f, 0.95f),
-                new Color(1f, 0.83f, 0.18f, 0.98f),
-                new Color(0.2f, 1f, 0.5f, 0.9f),
-                new Color(1f, 0.83f, 0.18f, 1f));
+                new Color(1f, 0.45f, 0.45f, 0.95f),
+                new Color(1f, 0.22f, 0.22f, 0.98f),
+                new Color(1f, 0.33f, 0.33f, 0.78f),
+                new Color(1f, 0.55f, 0.55f, 1f));
             internal static readonly EffectOverlayColors DefaultTrackMovePalette = new EffectOverlayColors(
-                new Color(0.35f, 0.75f, 1f, 0.95f),
-                new Color(1f, 0.55f, 0.2f, 0.96f),
-                new Color(1f, 0.55f, 0.2f, 0.78f),
-                new Color(1f, 0.68f, 0.3f, 1f));
+                new Color(1f, 0.85f, 0.35f, 0.95f),
+                new Color(1f, 0.72f, 0.12f, 0.98f),
+                new Color(1f, 0.78f, 0.20f, 0.78f),
+                new Color(1f, 0.88f, 0.45f, 1f));
             internal static readonly EffectOverlayColors DefaultTrackPositionPalette = new EffectOverlayColors(
-                new Color(0.35f, 0.8f, 1f, 0.95f),
-                new Color(0.35f, 1f, 0.62f, 0.96f),
-                new Color(0.35f, 1f, 0.62f, 0.78f),
-                new Color(0.5f, 1f, 0.7f, 1f));
+                new Color(0.45f, 1f, 0.60f, 0.95f),
+                new Color(0.22f, 0.95f, 0.42f, 0.98f),
+                new Color(0.30f, 0.90f, 0.50f, 0.78f),
+                new Color(0.55f, 1f, 0.68f, 1f));
             internal static readonly EffectOverlayColors DefaultFreeRoamPalette = new EffectOverlayColors(
-                new Color(0.55f, 0.7f, 1f, 0.95f),
-                new Color(0.9f, 0.45f, 1f, 0.96f),
-                new Color(0.9f, 0.45f, 1f, 0.78f),
-                new Color(0.95f, 0.6f, 1f, 1f));
+                new Color(0.40f, 0.75f, 1f, 0.95f),
+                new Color(0.20f, 0.55f, 1f, 0.98f),
+                new Color(0.30f, 0.65f, 1f, 0.78f),
+                new Color(0.55f, 0.80f, 1f, 1f));
 
             public bool ShowCameraFrame = true;
-            public string CameraFrameColor = "FFD42EF2";
+            public string CameraFrameColor = "FF3838F2";
 
-            public string CameraMoveTileMarkerColor = "59BFFFF2";
-            public string CameraMovePositionMarkerColor = "FFD42EFA";
-            public string CameraMoveSegmentColor = "33FF80E6";
-            public string CameraMoveNameColor = "FFD42EFF";
+            public string CameraMoveTileMarkerColor = "FF7373F2";
+            public string CameraMovePositionMarkerColor = "FF3838FA";
+            public string CameraMoveSegmentColor = "FF5454C7";
+            public string CameraMoveNameColor = "FF8C8CFF";
 
-            public string TrackMoveTileMarkerColor = "59BFFFF2";
-            public string TrackMovePositionMarkerColor = "FF8C33F5";
-            public string TrackMoveSegmentColor = "FF8C33C7";
-            public string TrackMoveNameColor = "FFAD4DFF";
+            public string TrackMoveTileMarkerColor = "FFD959F2";
+            public string TrackMovePositionMarkerColor = "FFB81FFA";
+            public string TrackMoveSegmentColor = "FFC733C7";
+            public string TrackMoveNameColor = "FFE673FF";
 
-            public string TrackPositionTileMarkerColor = "59CCFFF2";
-            public string TrackPositionPositionMarkerColor = "59FF9EF5";
-            public string TrackPositionSegmentColor = "59FF9EC7";
-            public string TrackPositionNameColor = "80FFB3FF";
+            public string TrackPositionTileMarkerColor = "73FF99F2";
+            public string TrackPositionPositionMarkerColor = "38F26BFA";
+            public string TrackPositionSegmentColor = "4DE680C7";
+            public string TrackPositionNameColor = "8CFFADFF";
 
-            public string FreeRoamTileMarkerColor = "8CB3FFF2";
-            public string FreeRoamPositionMarkerColor = "E673FFF5";
-            public string FreeRoamSegmentColor = "E673FFC7";
-            public string FreeRoamNameColor = "F299FFFF";
+            public string FreeRoamTileMarkerColor = "66BFFFF2";
+            public string FreeRoamPositionMarkerColor = "338CFFFA";
+            public string FreeRoamSegmentColor = "4DA6FFC7";
+            public string FreeRoamNameColor = "8CCCFFFF";
 
             internal static OverlaySettings CreateDefault() => new OverlaySettings();
         }
