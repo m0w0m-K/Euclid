@@ -21,7 +21,8 @@ namespace Euclid
 
         // PositionTrack updates positionOffset before ADOFAI necessarily reapplies the floor
         // transform. Keep the zero-offset origin stable while raw inspector/drag values are ahead
-        // of the displayed tile, then resynchronize once the floor catches up.
+        // of the displayed tile, then re-derive that origin from the actual tile transform as soon
+        // as ADOFAI applies/rebuilds the track.
         private const float PositionTrackSyncToleranceSqr = 0.0001f;
         private static bool hasPositionTrackReference;
         private static LevelEvent positionTrackReferenceEvent;
@@ -30,6 +31,7 @@ namespace Euclid
         private static Vector2 positionTrackZeroReference;
         private static Vector2 positionTrackAppliedOffsetTiles;
         private static Vector2 positionTrackAppliedFloorWorld;
+        private static bool positionTrackReferenceProvisional;
 
         internal static string DescribeTarget(CameraFrameSnapshot cameraFrame, string requestedKey)
         {
@@ -655,6 +657,7 @@ namespace Euclid
                 if (ReferenceEquals(positionTrackReferenceEvent, ev))
                 {
                     hasPositionTrackReference = false;
+                    positionTrackReferenceProvisional = false;
                 }
                 return displayedFloorWorld;
             }
@@ -689,44 +692,54 @@ namespace Euclid
                 positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
                 positionTrackAppliedOffsetTiles = rawOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
+
+                // Some editor refreshes expose a temporary zero positionOffset for one frame when
+                // a PositionTrack is selected. If the real non-zero value appears immediately
+                // afterwards without the tile moving, allow one rebase before treating later raw
+                // changes as pending edits.
+                positionTrackReferenceProvisional = rawOffsetTiles.sqrMagnitude <= 0.00000001f;
                 return positionTrackZeroReference;
             }
 
-            // The target represented by the current raw positionOffset according to the stable
-            // zero-origin. This is where Euclid's position marker must be even if ADOFAI has not
-            // moved the actual floor transform yet.
-            var expectedDisplayedForRaw = positionTrackZeroReference + rawOffsetTiles * scale;
-            var transformMatchesRaw =
-                (displayedFloorWorld - expectedDisplayedForRaw).sqrMagnitude <= PositionTrackSyncToleranceSqr;
+            var rawChanged =
+                (rawOffsetTiles - positionTrackAppliedOffsetTiles).sqrMagnitude > 0.00000001f;
+            var floorChanged =
+                (displayedFloorWorld - positionTrackAppliedFloorWorld).sqrMagnitude > PositionTrackSyncToleranceSqr;
 
-            if (transformMatchesRaw)
+            if (positionTrackReferenceProvisional && rawChanged && !floorChanged)
             {
-                // ADOFAI has applied the current offset (for example after the inspector loses
-                // focus). The zero-origin stays fixed; only the applied pair advances.
+                // Late event-data synchronization after selection: the visible tile already sits at
+                // the applied position, but the first sample temporarily reported (0, 0). Rebase
+                // once from the now-valid raw offset so the tile marker does not remain on the tile.
+                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
                 positionTrackAppliedOffsetTiles = rawOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
+                positionTrackReferenceProvisional = false;
                 return positionTrackZeroReference;
             }
 
-            var hasPendingRawOffset =
-                (rawOffsetTiles - positionTrackAppliedOffsetTiles).sqrMagnitude > 0.00000001f;
-            if (hasPendingRawOffset)
+            // Once we have observed a normal non-zero sample, later raw-only changes are genuine
+            // pending editor/Euclid edits. Keep the origin fixed until ADOFAI moves the floor.
+            if (!rawChanged)
             {
-                // The raw value already changed, but the displayed floor is still at the old applied
-                // position. Do NOT recompute the origin from this mixed state. Otherwise a drag to
-                // a new point would immediately collapse back onto the old tile position.
+                positionTrackReferenceProvisional = false;
+            }
+
+            if (!floorChanged)
+            {
                 return positionTrackZeroReference;
             }
 
-            // The raw offset did not change but the floor did. Treat this as an underlying path
-            // movement and translate the zero-origin by exactly the same world delta.
-            var floorDelta = displayedFloorWorld - positionTrackAppliedFloorWorld;
-            if (floorDelta.sqrMagnitude > PositionTrackSyncToleranceSqr)
-            {
-                positionTrackZeroReference += floorDelta;
-                positionTrackAppliedFloorWorld = displayedFloorWorld;
-            }
-
+            // The actual floor transform changed. This is the authoritative signal that ADOFAI has
+            // applied the pending PositionTrack value (typically when the inspector field loses
+            // focus) or rebuilt the path. Re-derive the zero-offset origin from the real tile and
+            // current raw offset instead of carrying the old floor delta forward. That guarantees:
+            //   tile marker     = displayed tile - offset
+            //   position marker = tile marker + offset = displayed tile
+            positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
+            positionTrackAppliedOffsetTiles = rawOffsetTiles;
+            positionTrackAppliedFloorWorld = displayedFloorWorld;
+            positionTrackReferenceProvisional = false;
             return positionTrackZeroReference;
         }
 
