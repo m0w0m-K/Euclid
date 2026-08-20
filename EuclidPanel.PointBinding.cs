@@ -39,17 +39,7 @@ namespace Euclid
             }
 
             UpdatePointBindings();
-            EnsurePointPinButtons();
             RefreshPointBindingButtons();
-
-            // PIN is the only endpoint control created dynamically after the detail hierarchy is
-            // built. Finalize PIN/P2/slider geometry and interactable colors in this same LateUpdate,
-            // before Unity's render/layout pass, so no intermediate size or enabled tint is visible.
-            var selectedShape = ConstructionShapeTool.PrimarySelectedShape;
-            if (selectedShape != null)
-            {
-                NormalizeDetailControlState(selectedShape);
-            }
         }
 
         private void UpdatePointBindings()
@@ -197,63 +187,6 @@ namespace Euclid
                 // normal TMP callbacks would briefly look like a manual edit and detach the source.
                 RefreshPointBindingFields(selectedShape);
                 RefreshShapeGeometryInfo(selectedShape);
-            }
-        }
-
-        private void EnsurePointPinButtons()
-        {
-            var shape = ConstructionShapeTool.PrimarySelectedShape;
-            if (shape == null)
-            {
-                shapeFirstPinText = null;
-                shapeSecondPinText = null;
-                return;
-            }
-
-            EnsurePointPinButton(shape, 0, shapeFirstPickText, ref shapeFirstPinText);
-            EnsurePointPinButton(shape, 1, shapeSecondPickText, ref shapeSecondPinText);
-        }
-
-        private void EnsurePointPinButton(
-            ConstructionShape shape,
-            int pointIndex,
-            TMP_Text pickText,
-            ref TMP_Text pinText)
-        {
-            if (pickText == null || pickText.transform == null || pickText.transform.parent == null)
-            {
-                pinText = null;
-                return;
-            }
-
-            var pickButtonTransform = pickText.transform.parent;
-            var row = pickButtonTransform.parent;
-            if (row == null)
-            {
-                pinText = null;
-                return;
-            }
-
-            if (pinText != null && pinText.transform != null &&
-                pinText.transform.parent != null && pinText.transform.parent.parent == row)
-            {
-                return;
-            }
-
-            pinText = AddButton(
-                row,
-                PointPinLabel(),
-                () => TogglePointPin(shape, pointIndex),
-                64f,
-                ButtonSurface.Outline);
-
-            if (pinText != null && pinText.transform.parent != null)
-            {
-                pinText.transform.parent.SetSiblingIndex(pickButtonTransform.GetSiblingIndex() + 1);
-                // Do not wait for a later frame to copy Pick's measured size. Both endpoint action
-                // buttons are fixed 64 px controls by definition, so give PIN that final geometry at
-                // creation time and let the row lay out from stable constraints.
-                NormalizePointButtonLayout(pinText);
             }
         }
 
