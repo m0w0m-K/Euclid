@@ -189,7 +189,10 @@ namespace Euclid
             }
 
             const float width = 64f;
-            var height = CurrentButtonHeight;
+            // This method runs after WithContent(detailContent, ...) has restored `content` to the
+            // main panel, so CurrentButtonHeight would return the main-panel height. Endpoint buttons
+            // are detail-panel controls and their construction-time height is always 36 px.
+            const float height = 36f;
             var root = text.transform.parent as RectTransform;
             var layout = text.transform.parent.GetComponent<LayoutElement>();
             if (layout != null)
