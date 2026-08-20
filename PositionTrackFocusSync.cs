@@ -17,6 +17,9 @@ namespace Euclid
     // so the position marker lands on the moved tile and the tile marker remains at the pre-effect
     // position. Earlier track/path movement is still preserved because it is already contained in
     // the applied floor world position.
+    //
+    // Euclid's scene-marker drag uses the same deferred model for performance: raw positionOffset
+    // changes during the drag, then the expensive real-floor application happens once on release.
     internal sealed class PositionTrackFocusSync : MonoBehaviour
     {
         private const float ChangeToleranceSqr = 0.00000001f;
@@ -30,6 +33,12 @@ namespace Euclid
         private static readonly FieldInfo AppliedOffsetField = GetCoordinateField("positionTrackAppliedOffsetTiles");
         private static readonly FieldInfo AppliedFloorField = GetCoordinateField("positionTrackAppliedFloorWorld");
         private static readonly FieldInfo ReferenceProvisionalField = GetCoordinateField("positionTrackReferenceProvisional");
+        private static readonly FieldInfo PositionOffsetDraggingField = typeof(CameraFrameOverlay).GetField(
+            "draggingPositionOffset",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        private static bool markerDragApplyPending;
+        private static LevelEvent pendingMarkerDragEvent;
 
         private LevelEvent trackedEvent;
         private int trackedFloor;
@@ -57,6 +66,20 @@ namespace Euclid
             behaviour.gameObject.AddComponent<PositionTrackFocusSync>();
         }
 
+        internal static bool ShouldDeferMarkerDragApply(LevelEvent ev, string key)
+        {
+            if (ev == null || ev.eventType != LevelEventType.PositionTrack ||
+                !string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase) ||
+                !IsPositionOffsetMarkerDragging())
+            {
+                return false;
+            }
+
+            pendingMarkerDragEvent = ev;
+            markerDragApplyPending = true;
+            return true;
+        }
+
         private void LateUpdate()
         {
             if (!EuclidMod.Enabled)
@@ -68,6 +91,14 @@ namespace Euclid
             var editor = scnEditor.instance;
             var panel = GameCompat.GetLevelEventsPanel(editor);
             var ev = GameCompat.GetSelectedEvent(panel);
+
+            CommitDeferredMarkerDragIfReleased(editor, ev);
+
+            // Clearing input focus during the deferred commit can make ADOFAI replace the selected
+            // event object, so fetch it again before continuing normal focus synchronization.
+            panel = GameCompat.GetLevelEventsPanel(editor);
+            ev = GameCompat.GetSelectedEvent(panel);
+
             if (editor == null || ev == null || ev.eventType != LevelEventType.PositionTrack ||
                 !IsThisTileRelative(ev) || !TryGetPositionOffset(ev, out var rawOffset))
             {
@@ -212,6 +243,50 @@ namespace Euclid
             inputWasFocused = inputFocused;
         }
 
+        private static void CommitDeferredMarkerDragIfReleased(scnEditor editor, LevelEvent selectedEvent)
+        {
+            if (!markerDragApplyPending || IsPositionOffsetMarkerDragging())
+            {
+                return;
+            }
+
+            var commitEvent = pendingMarkerDragEvent;
+            markerDragApplyPending = false;
+            pendingMarkerDragEvent = null;
+
+            // Match the inspector's normal commit boundary: release any active coordinate text field
+            // first, then apply the final raw value to the real floor hierarchy once.
+            ClearTextInputFocus();
+
+            if (editor != null)
+            {
+                var refreshedPanel = GameCompat.GetLevelEventsPanel(editor);
+                var refreshedEvent = GameCompat.GetSelectedEvent(refreshedPanel);
+                if (refreshedEvent != null && refreshedEvent.eventType == LevelEventType.PositionTrack &&
+                    (commitEvent == null || refreshedEvent.floor == commitEvent.floor))
+                {
+                    commitEvent = refreshedEvent;
+                }
+                else if (selectedEvent != null && selectedEvent.eventType == LevelEventType.PositionTrack &&
+                         (commitEvent == null || selectedEvent.floor == commitEvent.floor))
+                {
+                    commitEvent = selectedEvent;
+                }
+            }
+
+            if (commitEvent == null || commitEvent.eventType != LevelEventType.PositionTrack)
+            {
+                return;
+            }
+
+            GameCompat.TryApplyPropertiesToRealEvents(commitEvent);
+            if (editor != null)
+            {
+                GameCompat.TryUpdatePropertyText(editor, commitEvent, "positionOffset");
+                GameCompat.TryRefreshEventPanel(editor, commitEvent);
+            }
+        }
+
         private bool IsSameLogicalEvent(LevelEvent ev, int floor, int editorEventIndex)
         {
             if (trackedEvent == null)
@@ -277,6 +352,23 @@ namespace Euclid
             heldAppliedFloorWorld = Vector2.zero;
         }
 
+        private static bool IsPositionOffsetMarkerDragging()
+        {
+            if (PositionOffsetDraggingField == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                return PositionOffsetDraggingField.GetValue(null) is bool active && active;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private static bool IsTextInputFocused()
         {
             try
@@ -302,6 +394,31 @@ namespace Euclid
             catch (Exception)
             {
                 return false;
+            }
+        }
+
+        private static void ClearTextInputFocus()
+        {
+            try
+            {
+                var eventSystem = UnityEngine.EventSystems.EventSystem.current;
+                var selected = eventSystem != null ? eventSystem.currentSelectedGameObject : null;
+                if (selected != null)
+                {
+                    var tmpInput = selected.GetComponent<TMPro.TMP_InputField>() ??
+                                   selected.GetComponentInParent<TMPro.TMP_InputField>();
+                    tmpInput?.DeactivateInputField();
+
+                    var legacyInput = selected.GetComponent<UnityEngine.UI.InputField>() ??
+                                      selected.GetComponentInParent<UnityEngine.UI.InputField>();
+                    legacyInput?.DeactivateInputField();
+                }
+
+                eventSystem?.SetSelectedGameObject(null);
+            }
+            catch (Exception)
+            {
+                // Explicit apply below is sufficient even if this Unity version rejects focus reset.
             }
         }
 
