@@ -33,6 +33,7 @@ namespace Euclid
         // Keep a short barrier after end-edit. ADOFAI may rebuild/move the floor at the end of the
         // same frame, so another snap must not calculate against the old transform during that gap.
         internal static bool IsPending => pending || Time.frameCount <= settleThroughFrame;
+        internal static bool BlocksProgrammaticEdit => IsPending && !IsMarkerDragging();
 
         internal static void Install()
         {
