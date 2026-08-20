@@ -7,6 +7,7 @@ namespace Euclid
         internal static void Load(UnityModManager.ModEntry modEntry)
         {
             EuclidMod.Load(modEntry);
+            EditorLevelLoadPatch.Install();
             AllEffectMarkerSettings.Install(modEntry);
             PositionTrackFocusSync.Install();
             PositionTrackMarkerDragFocus.Install();
