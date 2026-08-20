@@ -5,12 +5,14 @@ using UnityEngine;
 
 namespace Euclid
 {
-    // Programmatic PositionTrack snaps must use the same commit boundary as a real inspector edit.
-    // Directly calling ApplyPropertiesToRealEvents updates the event data, but on some ADOFAI builds
-    // it does not execute the complete floor/path rebuild that happens when the positionOffset input
-    // actually loses focus. Reuse PositionTrackMarkerDragFocus's proven input resolver, keep the
-    // field focused for at least one LateUpdate so PositionTrackFocusSync can observe the pending raw
-    // change, then release it and let ADOFAI perform its normal one-shot commit.
+    // Programmatic PositionTrack snaps must reproduce the same order as a real inspector edit:
+    //   focus OLD value -> change raw value while focused -> update inspector text -> end edit.
+    //
+    // Focusing only after the raw value changed does not reliably trigger ADOFAI's PositionTrack
+    // commit path, because the input begins its edit already containing the new value. It also means
+    // PositionTrackFocusSync never observes "raw changed while focused", which is the state needed to
+    // preserve the pre-effect tile/reference origin. This component now owns that ordering explicitly.
+    [DefaultExecutionOrder(10000)]
     internal sealed class PositionTrackSnapCommitSync : MonoBehaviour
     {
         private static readonly MethodInfo FocusMethod = typeof(PositionTrackMarkerDragFocus).GetMethod(
@@ -24,12 +26,12 @@ namespace Euclid
             BindingFlags.Static | BindingFlags.NonPublic);
 
         private static bool pending;
+        private static bool releaseArmed;
         private static int releaseAfterFrame = -1;
         private static int settleThroughFrame = -1;
 
-        // Keep a one-frame barrier after releasing the inspector input. ADOFAI can rebuild the floor
-        // hierarchy at the end of that frame, and another snap calculated against the old transform is
-        // exactly what caused the occasional opposite-direction marker jump.
+        // Keep a short barrier after end-edit. ADOFAI may rebuild/move the floor at the end of the
+        // same frame, so another snap must not calculate against the old transform during that gap.
         internal static bool IsPending => pending || Time.frameCount <= settleThroughFrame;
 
         internal static void Install()
@@ -43,9 +45,12 @@ namespace Euclid
             behaviour.gameObject.AddComponent<PositionTrackSnapCommitSync>();
         }
 
-        internal static bool TryScheduleImmediateCommit(LevelEvent ev, string key)
+        // MUST be called before LevelEvent.positionOffset is changed. The field has to acquire focus
+        // while it still represents the last applied value, exactly like a real user edit.
+        internal static bool TryBeginImmediateCommit(LevelEvent ev, string key)
         {
-            if (ev == null || ev.eventType != LevelEventType.PositionTrack ||
+            if (pending || Time.frameCount <= settleThroughFrame ||
+                ev == null || ev.eventType != LevelEventType.PositionTrack ||
                 !string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase) ||
                 FocusMethod == null || ReleaseMethod == null || IsMarkerDragging())
             {
@@ -61,24 +66,46 @@ namespace Euclid
                 }
 
                 pending = true;
+                releaseArmed = false;
+                releaseAfterFrame = -1;
                 settleThroughFrame = -1;
-                // Keep the field alive for a full frame. PositionTrackFocusSync must see the new raw
-                // value while the real input is focused before ADOFAI receives the end-edit signal.
-                releaseAfterFrame = Time.frameCount + 1;
                 return true;
             }
             catch (Exception ex)
             {
-                EuclidMod.Logger?.Log("PositionTrack snap focus commit failed: " + ex.Message);
-                pending = false;
-                releaseAfterFrame = -1;
+                EuclidMod.Logger?.Log("PositionTrack snap focus begin failed: " + ex.Message);
+                ResetPendingState();
                 return false;
             }
         }
 
-        private void LateUpdate()
+        // Call after the raw value and inspector text have both been updated. Keep the input focused
+        // through at least one complete LateUpdate so PositionTrackFocusSync can capture the previous
+        // applied floor/offset before this component releases focus later in execution order.
+        internal static void ArmImmediateCommit()
         {
             if (!pending)
+            {
+                return;
+            }
+
+            releaseArmed = true;
+            releaseAfterFrame = Time.frameCount + 1;
+        }
+
+        internal static void CancelImmediateCommit()
+        {
+            if (!pending)
+            {
+                return;
+            }
+
+            ReleaseNow(settle: false);
+        }
+
+        private void LateUpdate()
+        {
+            if (!pending || !releaseArmed)
             {
                 return;
             }
@@ -89,8 +116,8 @@ namespace Euclid
                 return;
             }
 
-            // If the user starts a scene-marker drag before the scheduled release, keep ownership of
-            // the same input. MarkerDragFocus will release it when that drag ends; do not interrupt it.
+            // If the user grabs the marker before the scheduled snap release, keep the same real
+            // input focused. MarkerDragFocus will continue the raw edit and release it on MouseUp.
             if (IsMarkerDragging())
             {
                 return;
@@ -135,9 +162,18 @@ namespace Euclid
             finally
             {
                 pending = false;
+                releaseArmed = false;
                 releaseAfterFrame = -1;
-                settleThroughFrame = settle ? Time.frameCount + 1 : -1;
+                settleThroughFrame = settle ? Time.frameCount + 2 : -1;
             }
+        }
+
+        private static void ResetPendingState()
+        {
+            pending = false;
+            releaseArmed = false;
+            releaseAfterFrame = -1;
+            settleThroughFrame = -1;
         }
 
         private static bool IsMarkerDragging()
