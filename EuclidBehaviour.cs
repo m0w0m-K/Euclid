@@ -74,8 +74,9 @@ namespace Euclid
         {
             var editor = scnEditor.instance;
             var floors = GameCompat.GetFloors(editor);
+            object levelData = null;
             var hasLevelData = editor != null &&
-                GameCompat.TryGetMember(editor, "levelData", out object levelData) &&
+                GameCompat.TryGetMember(editor, "levelData", out levelData) &&
                 levelData != null;
             var ready = editor != null && hasLevelData && floors.Count > 0;
 
