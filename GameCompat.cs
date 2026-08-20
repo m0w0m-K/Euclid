@@ -22,6 +22,11 @@ namespace Euclid
             return TryGetMember(editor, "playMode", out bool playing) && playing;
         }
 
+        internal static bool IsEditorLoading(scnEditor editor)
+        {
+            return TryGetMember(editor, "isLoading", out bool loading) && loading;
+        }
+
         internal static InspectorPanel GetSettingsPanel(scnEditor editor)
         {
             return TryGetMember(editor, "settingsPanel", out InspectorPanel panel) ? panel : null;
