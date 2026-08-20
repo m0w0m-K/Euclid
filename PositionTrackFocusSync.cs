@@ -5,9 +5,10 @@ using UnityEngine;
 
 namespace Euclid
 {
-    // ADOFAI changes the stored PositionTrack positionOffset before the real floor transform is
-    // necessarily rebuilt. This component observes the editor's actual text-input focus and tells
-    // CoordinateSnapTool only when a state is known to be applied.
+    // ADOFAI can change a stored floor-moving positionOffset before the real floor transform is
+    // necessarily rebuilt. PositionTrack (ThisTile) and FreeRoam both use this pattern. This
+    // component observes the editor's actual text-input focus and tells CoordinateSnapTool only
+    // when a state is known to be applied.
     //
     // Important distinction:
     //   raw offset       = value stored in positionOffset
@@ -57,7 +58,7 @@ namespace Euclid
             var editor = scnEditor.instance;
             var panel = GameCompat.GetLevelEventsPanel(editor);
             var ev = GameCompat.GetSelectedEvent(panel);
-            if (editor == null || ev == null || ev.eventType != LevelEventType.PositionTrack ||
+            if (editor == null || !UsesAppliedFloorPositionOffset(ev) ||
                 !IsThisTileRelative(ev) || !TryGetPositionOffset(ev, out var rawOffset))
             {
                 ResetTracking();
@@ -295,8 +296,30 @@ namespace Euclid
             }
         }
 
+        private static bool UsesAppliedFloorPositionOffset(LevelEvent ev)
+        {
+            if (ev == null)
+            {
+                return false;
+            }
+
+            if (ev.eventType == LevelEventType.PositionTrack)
+            {
+                return true;
+            }
+
+            return string.Equals(ev.eventType.ToString(), "FreeRoam", StringComparison.Ordinal);
+        }
+
         private static bool IsThisTileRelative(LevelEvent ev)
         {
+            // FreeRoam's positionOffset is tied to the event's own host floor; it has the same
+            // applied-floor geometry as PositionTrack relativeTo=ThisTile for this synchronizer.
+            if (ev != null && string.Equals(ev.eventType.ToString(), "FreeRoam", StringComparison.Ordinal))
+            {
+                return true;
+            }
+
             if (!LevelEventCompat.TryGetRaw(ev, "relativeTo", out var raw) || raw == null)
             {
                 return true;
