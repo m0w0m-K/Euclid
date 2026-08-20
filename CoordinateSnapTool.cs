@@ -737,9 +737,9 @@ namespace Euclid
 
             if (!rawChanged && floorChanged)
             {
-                // The event offset itself did not change, so this is an underlying path/tile move
-                // rather than deferred PositionTrack application. Follow that external movement.
-                positionTrackZeroReference += displayedFloorWorld - positionTrackAppliedFloorWorld;
+                // PositionTrack can move the displayed floor transform without changing the raw
+                // positionOffset value. Keep the zero-offset reference at its absolute world
+                // coordinate instead of following the moved tile.
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
             }
 
@@ -897,7 +897,6 @@ namespace Euclid
         {
             return new Vector2(Sanitize(value.x), Sanitize(value.y));
         }
-
         private static float Sanitize(float value)
         {
             return float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;
