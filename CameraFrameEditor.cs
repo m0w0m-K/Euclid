@@ -19,6 +19,30 @@ namespace Euclid
             return TrySetVectorProperty(snapshot.SelectedEvent, "position", offsetTiles, saveUndoState);
         }
 
+        internal static bool TrySetZoom(CameraFrameSnapshot snapshot, float zoomPercent, bool saveUndoState)
+        {
+            if (snapshot.State != CameraFrameState.Ready || snapshot.SelectedEvent == null)
+            {
+                return false;
+            }
+
+            return TrySetFloatProperty(
+                snapshot.SelectedEvent,
+                "zoom",
+                Mathf.Clamp(zoomPercent, 1f, 10000f),
+                saveUndoState);
+        }
+
+        internal static bool TrySetRotation(CameraFrameSnapshot snapshot, float rotationDegrees, bool saveUndoState)
+        {
+            if (snapshot.State != CameraFrameState.Ready || snapshot.SelectedEvent == null)
+            {
+                return false;
+            }
+
+            return TrySetFloatProperty(snapshot.SelectedEvent, "rotation", rotationDegrees, saveUndoState);
+        }
+
         internal static bool TrySetVectorProperty(LevelEvent ev, string key, Vector2 value, bool saveUndoState)
         {
             try
@@ -149,6 +173,45 @@ namespace Euclid
             catch (Exception ex)
             {
                 PositionTrackSnapCommitSync.CancelImmediateCommit();
+                EuclidMod.Logger?.Error(ex.ToString());
+                return false;
+            }
+        }
+
+        private static bool TrySetFloatProperty(LevelEvent ev, string key, float value, bool saveUndoState)
+        {
+            try
+            {
+                var editor = scnEditor.instance;
+                if (editor == null || ev == null || string.IsNullOrWhiteSpace(key) ||
+                    float.IsNaN(value) || float.IsInfinity(value))
+                {
+                    return false;
+                }
+
+                if (saveUndoState)
+                {
+                    TrySaveState(editor);
+                }
+
+                if (!LevelEventCompat.SetRaw(ev, key, value))
+                {
+                    return false;
+                }
+
+                if (ev.disabled == null)
+                {
+                    ev.disabled = new Dictionary<string, bool>();
+                }
+                ev.disabled[key] = false;
+
+                GameCompat.TryApplyPropertiesToRealEvents(ev);
+                MarkUnsaved(editor);
+                RefreshInspectorProperty(editor, ev, key, refreshPanel: saveUndoState);
+                return true;
+            }
+            catch (Exception ex)
+            {
                 EuclidMod.Logger?.Error(ex.ToString());
                 return false;
             }
