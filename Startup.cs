@@ -10,6 +10,7 @@ namespace Euclid
             AllEffectMarkerSettings.Install(modEntry);
             PositionTrackFocusSync.Install();
             PositionTrackMarkerDragFocus.Install();
+            SelectedShapeSnapSync.Install();
             AllEffectMarkerOverlayV2.Install();
         }
     }
