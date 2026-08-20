@@ -5,9 +5,9 @@ using UnityModManagerNet;
 
 namespace Euclid
 {
-    // Keeps the new marker-visibility toggle independent from the older color-settings serializer.
-    // The callbacks are chained after EuclidMod's existing UMM callbacks, and this class patches one
-    // boolean into the same Settings.json after EuclidMod has written its normal settings.
+    // Owns the selection-independent all-effect-marker toggle and persists it beside Euclid's
+    // normal overlay settings. EuclidMod draws the toggle explicitly so it can sit above the
+    // color configuration instead of being appended after every other option.
     internal static class AllEffectMarkerSettings
     {
         private const string SettingsFileName = "Settings.json";
@@ -28,13 +28,6 @@ namespace Euclid
             modEntry = entry;
             Load();
 
-            var previousGui = entry.OnGUI;
-            entry.OnGUI = currentEntry =>
-            {
-                previousGui?.Invoke(currentEntry);
-                DrawGui();
-            };
-
             var previousSaveGui = entry.OnSaveGUI;
             entry.OnSaveGUI = currentEntry =>
             {
@@ -43,9 +36,8 @@ namespace Euclid
             };
         }
 
-        private static void DrawGui()
+        internal static void DrawGui()
         {
-            GUILayout.Space(8f);
             var label = string.Equals(EuclidText.CurrentLocaleCode, "ko", StringComparison.OrdinalIgnoreCase)
                 ? "모든 이펙트 마크 표시"
                 : "Show all effect markers";
