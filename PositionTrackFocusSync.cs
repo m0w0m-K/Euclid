@@ -1,44 +1,22 @@
 using System;
 using System.Collections;
-using System.Reflection;
 using ADOFAI;
 using UnityEngine;
 
 namespace Euclid
 {
-    // PositionTrack's inspector edits positionOffset immediately, but ADOFAI does not move the
-    // floor transform until the coordinate input loses focus. CoordinateSnapTool therefore cannot
-    // distinguish a pending edit from an already-applied floor by looking at values alone.
+    // ADOFAI changes the stored PositionTrack positionOffset before the real floor transform is
+    // necessarily rebuilt. This component observes the editor's actual text-input focus and tells
+    // CoordinateSnapTool only when a state is known to be applied.
     //
-    // This component observes the actual Unity input-field focus. While an offset edit is focused,
-    // it pins CoordinateSnapTool's zero reference to the last applied tile position. Once focus is
-    // lost and the floor transform catches up, it rebases the zero reference as:
-    //     applied floor world - current positionOffset * tileSize
-    // so the position marker lands on the moved tile and the tile marker remains at the pre-effect
-    // position. Earlier track/path movement is still preserved because it is already contained in
-    // the applied floor world position.
-    //
-    // Euclid's scene-marker drag uses the same deferred model for performance: raw positionOffset
-    // changes during the drag, then the expensive real-floor application happens once on release.
+    // Important distinction:
+    //   raw offset       = value stored in positionOffset
+    //   effective offset = raw offset when the property is enabled, otherwise zero
+    // The marker cache always stores the last APPLIED effective offset. That same model handles
+    // ordinary text edits, Euclid marker drags, snapping, and the property's own on/off toggle.
     internal sealed class PositionTrackFocusSync : MonoBehaviour
     {
         private const float ChangeToleranceSqr = 0.00000001f;
-
-        private static readonly Type CoordinateSnapType = typeof(CoordinateSnapTool);
-        private static readonly FieldInfo HasReferenceField = GetCoordinateField("hasPositionTrackReference");
-        private static readonly FieldInfo ReferenceEventField = GetCoordinateField("positionTrackReferenceEvent");
-        private static readonly FieldInfo ReferenceFloorField = GetCoordinateField("positionTrackReferenceFloor");
-        private static readonly FieldInfo ReferenceTileSizeField = GetCoordinateField("positionTrackReferenceTileSize");
-        private static readonly FieldInfo ZeroReferenceField = GetCoordinateField("positionTrackZeroReference");
-        private static readonly FieldInfo AppliedOffsetField = GetCoordinateField("positionTrackAppliedOffsetTiles");
-        private static readonly FieldInfo AppliedFloorField = GetCoordinateField("positionTrackAppliedFloorWorld");
-        private static readonly FieldInfo ReferenceProvisionalField = GetCoordinateField("positionTrackReferenceProvisional");
-        private static readonly FieldInfo PositionOffsetDraggingField = typeof(CameraFrameOverlay).GetField(
-            "draggingPositionOffset",
-            BindingFlags.Static | BindingFlags.NonPublic);
-
-        private static bool markerDragApplyPending;
-        private static LevelEvent pendingMarkerDragEvent;
 
         private LevelEvent trackedEvent;
         private int trackedFloor;
@@ -46,13 +24,15 @@ namespace Euclid
         private bool hasLastObservedState;
         private Vector2 lastObservedFloorWorld;
         private Vector2 lastObservedRawOffset;
+        private Vector2 lastObservedEffectiveOffset;
         private bool inputWasFocused;
 
-        // True after positionOffset changed while a text field had real Unity focus. Until ADOFAI
-        // applies that edit to the floor transform, keep the old applied state pinned in the cache.
+        // Once raw positionOffset changes while a real inspector field has focus, the displayed
+        // floor is still the previously applied state. Hold that state until focus is gone and the
+        // floor catches up instead of deriving a new origin from the pending raw value.
         private bool awaitingFocusedEditApply;
         private Vector2 heldZeroReference;
-        private Vector2 heldAppliedOffset;
+        private Vector2 heldAppliedEffectiveOffset;
         private Vector2 heldAppliedFloorWorld;
 
         internal static void Install()
@@ -66,20 +46,6 @@ namespace Euclid
             behaviour.gameObject.AddComponent<PositionTrackFocusSync>();
         }
 
-        internal static bool ShouldDeferMarkerDragApply(LevelEvent ev, string key)
-        {
-            if (ev == null || ev.eventType != LevelEventType.PositionTrack ||
-                !string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase) ||
-                !IsPositionOffsetMarkerDragging())
-            {
-                return false;
-            }
-
-            pendingMarkerDragEvent = ev;
-            markerDragApplyPending = true;
-            return true;
-        }
-
         private void LateUpdate()
         {
             if (!EuclidMod.Enabled)
@@ -91,14 +57,6 @@ namespace Euclid
             var editor = scnEditor.instance;
             var panel = GameCompat.GetLevelEventsPanel(editor);
             var ev = GameCompat.GetSelectedEvent(panel);
-
-            CommitDeferredMarkerDragIfReleased(editor, ev);
-
-            // Clearing input focus during the deferred commit can make ADOFAI replace the selected
-            // event object, so fetch it again before continuing normal focus synchronization.
-            panel = GameCompat.GetLevelEventsPanel(editor);
-            ev = GameCompat.GetSelectedEvent(panel);
-
             if (editor == null || ev == null || ev.eventType != LevelEventType.PositionTrack ||
                 !IsThisTileRelative(ev) || !TryGetPositionOffset(ev, out var rawOffset))
             {
@@ -113,26 +71,36 @@ namespace Euclid
             }
 
             var tileSize = Mathf.Max(GameCompat.GetTileSize(), 0.000001f);
+            var effectiveOffset = LevelEventCompat.IsPropertyEnabled(ev, "positionOffset")
+                ? rawOffset
+                : Vector2.zero;
             var editorEventIndex = GetEditorEventIndex(editor, ev);
             var inputFocused = IsTextInputFocused();
 
             if (!IsSameLogicalEvent(ev, referenceFloor, editorEventIndex))
             {
-                BeginTracking(ev, referenceFloor, editorEventIndex, floorWorld, rawOffset, inputFocused);
+                BeginTracking(
+                    ev,
+                    referenceFloor,
+                    editorEventIndex,
+                    floorWorld,
+                    rawOffset,
+                    effectiveOffset,
+                    inputFocused);
                 return;
             }
 
-            // ADOFAI can replace the selected LevelEvent object while applying inspector edits.
-            // Preserve the pending-edit baseline across that replacement instead of letting
-            // CoordinateSnapTool treat the replacement object as a brand-new PositionTrack.
+            // ADOFAI may replace the LevelEvent object while applying an inspector edit. Preserve
+            // the held applied state across that replacement instead of letting object identity make
+            // CoordinateSnapTool initialize from a half-applied frame.
             if (!ReferenceEquals(trackedEvent, ev) && awaitingFocusedEditApply)
             {
-                ForceCoordinateCache(
+                CoordinateSnapTool.SyncPositionTrackAppliedState(
                     ev,
                     referenceFloor,
                     tileSize,
                     heldZeroReference,
-                    heldAppliedOffset,
+                    heldAppliedEffectiveOffset,
                     heldAppliedFloorWorld);
             }
 
@@ -150,141 +118,88 @@ namespace Euclid
 
             if (inputFocused && rawChanged && !awaitingFocusedEditApply)
             {
-                // The raw inspector value changed while the field is genuinely focused, so the
-                // displayed floor still represents the previously applied offset. Capture that
-                // applied state once and keep it stable for the entire text edit.
+                // Capture the actual state from immediately before the focused edit. This is the
+                // only offset that was known to be applied to heldAppliedFloorWorld.
                 awaitingFocusedEditApply = true;
-                heldAppliedOffset = lastObservedRawOffset;
+                heldAppliedEffectiveOffset = lastObservedEffectiveOffset;
                 heldAppliedFloorWorld = lastObservedFloorWorld;
-                heldZeroReference = heldAppliedFloorWorld - heldAppliedOffset * tileSize;
+                heldZeroReference = heldAppliedFloorWorld - heldAppliedEffectiveOffset * tileSize;
             }
 
             if (awaitingFocusedEditApply)
             {
                 if (inputFocused)
                 {
-                    // Even if ADOFAI rebuilds UI/event objects mid-edit, the marker origin must not
-                    // rebase from the raw value that has not yet been applied to the floor.
-                    ForceCoordinateCache(
+                    CoordinateSnapTool.SyncPositionTrackAppliedState(
                         ev,
                         referenceFloor,
                         tileSize,
                         heldZeroReference,
-                        heldAppliedOffset,
+                        heldAppliedEffectiveOffset,
                         heldAppliedFloorWorld);
                 }
-                else if ((rawOffset - heldAppliedOffset).sqrMagnitude <= ChangeToleranceSqr)
+                else if ((effectiveOffset - heldAppliedEffectiveOffset).sqrMagnitude <= ChangeToleranceSqr)
                 {
-                    // The user returned the field to its original value before leaving it.
-                    ForceCoordinateCache(
+                    // The edit ended at the same effective value it started with. There is no new
+                    // applied state to wait for.
+                    CoordinateSnapTool.SyncPositionTrackAppliedState(
                         ev,
                         referenceFloor,
                         tileSize,
                         heldZeroReference,
-                        heldAppliedOffset,
+                        heldAppliedEffectiveOffset,
                         heldAppliedFloorWorld);
                     awaitingFocusedEditApply = false;
                 }
-                else if (floorChanged ||
-                         (floorWorld - heldAppliedFloorWorld).sqrMagnitude > ChangeToleranceSqr)
+                else if ((floorWorld - heldAppliedFloorWorld).sqrMagnitude > ChangeToleranceSqr)
                 {
-                    // Focus is gone and ADOFAI has now moved the actual tile. This is the exact
-                    // applied state requested by the overlay:
-                    //   tile marker     = actual tile - current offset
-                    //   position marker = actual tile
-                    var zeroReference = floorWorld - rawOffset * tileSize;
-                    ForceCoordinateCache(
+                    // Focus is gone and the floor now reflects the new effective state.
+                    CoordinateSnapTool.SyncPositionTrackAppliedState(
                         ev,
                         referenceFloor,
                         tileSize,
-                        zeroReference,
-                        rawOffset,
+                        floorWorld - effectiveOffset * tileSize,
+                        effectiveOffset,
                         floorWorld);
                     awaitingFocusedEditApply = false;
                 }
                 else
                 {
-                    // Focus has ended but the floor transform has not caught up yet. Keep the
-                    // pre-apply reference pinned until ADOFAI performs its deferred move.
-                    ForceCoordinateCache(
+                    // End-edit has fired but ADOFAI has not rebuilt the floor yet.
+                    CoordinateSnapTool.SyncPositionTrackAppliedState(
                         ev,
                         referenceFloor,
                         tileSize,
                         heldZeroReference,
-                        heldAppliedOffset,
+                        heldAppliedEffectiveOffset,
                         heldAppliedFloorWorld);
                 }
             }
             else if (!inputFocused && floorChanged)
             {
-                // No pending focused edit: this floor movement came from an already-applied change
-                // (for example an earlier track/path effect). Follow that movement, but subtract
-                // this PositionTrack's own offset from the tile marker.
-                var zeroReference = floorWorld - rawOffset * tileSize;
-                ForceCoordinateCache(
+                // This covers upstream/path movement and the positionOffset property's own on/off
+                // switch. When disabled, effectiveOffset is zero, so both markers settle exactly on
+                // the restored floor instead of subtracting the dormant raw offset a second time.
+                CoordinateSnapTool.SyncPositionTrackAppliedState(
                     ev,
                     referenceFloor,
                     tileSize,
-                    zeroReference,
-                    rawOffset,
+                    floorWorld - effectiveOffset * tileSize,
+                    effectiveOffset,
                     floorWorld);
             }
 
-            // If the floor moved while the pending field was still focused, do not consume that
-            // movement as the new baseline. The first unfocused frame must still observe it and
-            // perform the applied-state rebase above.
+            // Do not consume a floor movement while a focused edit is still pending; the first
+            // unfocused frame must be able to recognize the host editor's applied move.
             if (!(awaitingFocusedEditApply && inputFocused && floorChanged))
             {
                 lastObservedFloorWorld = floorWorld;
             }
 
             lastObservedRawOffset = rawOffset;
+            lastObservedEffectiveOffset = effectiveOffset;
             hasLastObservedState = true;
             inputWasFocused = inputFocused;
-        }
-
-        private static void CommitDeferredMarkerDragIfReleased(scnEditor editor, LevelEvent selectedEvent)
-        {
-            if (!markerDragApplyPending || IsPositionOffsetMarkerDragging())
-            {
-                return;
-            }
-
-            var commitEvent = pendingMarkerDragEvent;
-            markerDragApplyPending = false;
-            pendingMarkerDragEvent = null;
-
-            // Match the inspector's normal commit boundary: release any active coordinate text field
-            // first, then apply the final raw value to the real floor hierarchy once.
-            ClearTextInputFocus();
-
-            if (editor != null)
-            {
-                var refreshedPanel = GameCompat.GetLevelEventsPanel(editor);
-                var refreshedEvent = GameCompat.GetSelectedEvent(refreshedPanel);
-                if (refreshedEvent != null && refreshedEvent.eventType == LevelEventType.PositionTrack &&
-                    (commitEvent == null || refreshedEvent.floor == commitEvent.floor))
-                {
-                    commitEvent = refreshedEvent;
-                }
-                else if (selectedEvent != null && selectedEvent.eventType == LevelEventType.PositionTrack &&
-                         (commitEvent == null || selectedEvent.floor == commitEvent.floor))
-                {
-                    commitEvent = selectedEvent;
-                }
-            }
-
-            if (commitEvent == null || commitEvent.eventType != LevelEventType.PositionTrack)
-            {
-                return;
-            }
-
-            GameCompat.TryApplyPropertiesToRealEvents(commitEvent);
-            if (editor != null)
-            {
-                GameCompat.TryUpdatePropertyText(editor, commitEvent, "positionOffset");
-                GameCompat.TryRefreshEventPanel(editor, commitEvent);
-            }
         }
 
         private bool IsSameLogicalEvent(LevelEvent ev, int floor, int editorEventIndex)
@@ -310,9 +225,6 @@ namespace Euclid
                 return true;
             }
 
-            // During the exact focus-loss/apply window, object identity and even editor list
-            // reconstruction may change. The selected PositionTrack on the same floor is still the
-            // edit we were tracking until the deferred floor application completes.
             return awaitingFocusedEditApply || inputWasFocused;
         }
 
@@ -322,6 +234,7 @@ namespace Euclid
             int editorEventIndex,
             Vector2 floorWorld,
             Vector2 rawOffset,
+            Vector2 effectiveOffset,
             bool inputFocused)
         {
             trackedEvent = ev;
@@ -330,10 +243,11 @@ namespace Euclid
             hasLastObservedState = true;
             lastObservedFloorWorld = floorWorld;
             lastObservedRawOffset = rawOffset;
+            lastObservedEffectiveOffset = effectiveOffset;
             inputWasFocused = inputFocused;
             awaitingFocusedEditApply = false;
             heldZeroReference = Vector2.zero;
-            heldAppliedOffset = Vector2.zero;
+            heldAppliedEffectiveOffset = Vector2.zero;
             heldAppliedFloorWorld = Vector2.zero;
         }
 
@@ -345,28 +259,12 @@ namespace Euclid
             hasLastObservedState = false;
             lastObservedFloorWorld = Vector2.zero;
             lastObservedRawOffset = Vector2.zero;
+            lastObservedEffectiveOffset = Vector2.zero;
             inputWasFocused = false;
             awaitingFocusedEditApply = false;
             heldZeroReference = Vector2.zero;
-            heldAppliedOffset = Vector2.zero;
+            heldAppliedEffectiveOffset = Vector2.zero;
             heldAppliedFloorWorld = Vector2.zero;
-        }
-
-        private static bool IsPositionOffsetMarkerDragging()
-        {
-            if (PositionOffsetDraggingField == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                return PositionOffsetDraggingField.GetValue(null) is bool active && active;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
         }
 
         private static bool IsTextInputFocused()
@@ -394,31 +292,6 @@ namespace Euclid
             catch (Exception)
             {
                 return false;
-            }
-        }
-
-        private static void ClearTextInputFocus()
-        {
-            try
-            {
-                var eventSystem = UnityEngine.EventSystems.EventSystem.current;
-                var selected = eventSystem != null ? eventSystem.currentSelectedGameObject : null;
-                if (selected != null)
-                {
-                    var tmpInput = selected.GetComponent<TMPro.TMP_InputField>() ??
-                                   selected.GetComponentInParent<TMPro.TMP_InputField>();
-                    tmpInput?.DeactivateInputField();
-
-                    var legacyInput = selected.GetComponent<UnityEngine.UI.InputField>() ??
-                                      selected.GetComponentInParent<UnityEngine.UI.InputField>();
-                    legacyInput?.DeactivateInputField();
-                }
-
-                eventSystem?.SetSelectedGameObject(null);
-            }
-            catch (Exception)
-            {
-                // Explicit apply below is sufficient even if this Unity version rejects focus reset.
             }
         }
 
@@ -489,11 +362,10 @@ namespace Euclid
         {
             try
             {
-                value = raw == null ? 0f : Convert.ToSingle(raw, System.Globalization.CultureInfo.InvariantCulture);
-                if (float.IsNaN(value) || float.IsInfinity(value))
-                {
-                    value = 0f;
-                }
+                value = raw == null
+                    ? 0f
+                    : Convert.ToSingle(raw, System.Globalization.CultureInfo.InvariantCulture);
+                value = Sanitize(value);
                 return true;
             }
             catch (Exception)
@@ -539,7 +411,7 @@ namespace Euclid
             }
             catch (Exception)
             {
-                // Editor floor lists can be rebuilt during focus loss. Retry on the next LateUpdate.
+                // The editor can rebuild its floor list during the apply frame.
             }
 
             return false;
@@ -553,54 +425,23 @@ namespace Euclid
             }
 
             var index = 0;
-            foreach (var current in GameCompat.GetEditorEvents(editor))
-            {
-                if (ReferenceEquals(current, ev))
-                {
-                    return index;
-                }
-                index++;
-            }
-
-            return -1;
-        }
-
-        private static void ForceCoordinateCache(
-            LevelEvent ev,
-            int referenceFloor,
-            float tileSize,
-            Vector2 zeroReference,
-            Vector2 appliedOffset,
-            Vector2 appliedFloorWorld)
-        {
-            if (HasReferenceField == null || ReferenceEventField == null ||
-                ReferenceFloorField == null || ReferenceTileSizeField == null ||
-                ZeroReferenceField == null || AppliedOffsetField == null ||
-                AppliedFloorField == null || ReferenceProvisionalField == null)
-            {
-                return;
-            }
-
             try
             {
-                ReferenceEventField.SetValue(null, ev);
-                ReferenceFloorField.SetValue(null, referenceFloor);
-                ReferenceTileSizeField.SetValue(null, tileSize);
-                ZeroReferenceField.SetValue(null, zeroReference);
-                AppliedOffsetField.SetValue(null, appliedOffset);
-                AppliedFloorField.SetValue(null, appliedFloorWorld);
-                ReferenceProvisionalField.SetValue(null, false);
-                HasReferenceField.SetValue(null, true);
+                foreach (var current in GameCompat.GetEditorEvents(editor))
+                {
+                    if (ReferenceEquals(current, ev))
+                    {
+                        return index;
+                    }
+                    index++;
+                }
             }
             catch (Exception)
             {
-                // A missing/changed private field should disable only this compatibility shim.
+                // Object/floor matching still keeps the short apply transition coherent.
             }
-        }
 
-        private static FieldInfo GetCoordinateField(string name)
-        {
-            return CoordinateSnapType.GetField(name, BindingFlags.Static | BindingFlags.NonPublic);
+            return -1;
         }
     }
 }
