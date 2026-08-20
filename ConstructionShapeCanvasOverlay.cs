@@ -181,7 +181,7 @@ namespace Euclid
 
                 var label = GetOrCreateLabel(labelIndex++);
                 label.gameObject.SetActive(true);
-                label.text = "#" + shape.Id;
+                label.text = ConstructionShapeTool.GetShapeName(shape);
                 label.color = ConstructionShapeOverlayGraphic.GetMarkerColor(shape);
                 label.rectTransform.anchoredPosition = localPoint + new Vector2(8f, 22f);
             }
