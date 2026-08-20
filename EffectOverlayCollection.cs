@@ -7,13 +7,12 @@ using UnityEngine;
 
 namespace Euclid
 {
-    // Collects the effect-marker model used by the below-editor overlay. The selected event keeps
-    // its interactive/pending-edit semantics from CoordinateSnapTool; unselected events are read
-    // only from their already-applied editor state so collecting every marker never disturbs the
-    // single-event PositionTrack cache.
+    // Read-only collection for the optional "show all effect markers" layer. The currently selected
+    // effect is deliberately excluded because the normal ConstructionShapeCanvasOverlay already
+    // draws that one using the interactive/pending-edit CoordinateSnapTool state.
     internal static class EffectOverlayCollection
     {
-        internal static void CollectVisible(List<EffectOverlayVisual> visuals)
+        internal static void CollectBackground(List<EffectOverlayVisual> visuals)
         {
             if (visuals == null)
             {
@@ -23,36 +22,9 @@ namespace Euclid
             visuals.Clear();
             if (!EuclidMod.ShowAllEffectMarkers)
             {
-                CollectFocused(visuals);
                 return;
             }
 
-            CollectAll(visuals);
-        }
-
-        private static void CollectFocused(List<EffectOverlayVisual> visuals)
-        {
-            var cameraFrame = EuclidMod.Behaviour != null
-                ? EuclidMod.Behaviour.CameraFrame
-                : CameraFrameSnapshot.Unavailable(string.Empty);
-            if (cameraFrame.State == CameraFrameState.Ready)
-            {
-                visuals.Add(new EffectOverlayVisual(
-                    EffectOverlayKind.CameraMove,
-                    cameraFrame.ReferencePoint,
-                    cameraFrame.Center,
-                    EuclidText.Get("effect.moveCamera")));
-                return;
-            }
-
-            if (CoordinateSnapTool.TryGetFocusedEffectVisual(out var visual))
-            {
-                visuals.Add(visual);
-            }
-        }
-
-        private static void CollectAll(List<EffectOverlayVisual> visuals)
-        {
             var editor = scnEditor.instance;
             if (editor == null || GameCompat.IsEditorPlaying(editor))
             {
@@ -62,25 +34,12 @@ namespace Euclid
             var panel = GameCompat.GetLevelEventsPanel(editor);
             var selectedEvent = GameCompat.GetSelectedEvent(panel);
 
-            // Camera events depend on previous camera events, so build their markers in timeline
-            // order once rather than recomputing the entire camera state separately for each event.
-            CameraFrameSnapshot.AppendAllMoveCameraVisuals(visuals, selectedEvent);
+            AppendBackgroundMoveCameraVisuals(editor, selectedEvent, visuals);
 
-            var selectedNonCameraWasAdded = false;
             foreach (var ev in GameCompat.GetEditorEvents(editor))
             {
-                if (ev == null || ev.eventType == LevelEventType.MoveCamera)
+                if (ev == null || ev.eventType == LevelEventType.MoveCamera || ReferenceEquals(ev, selectedEvent))
                 {
-                    continue;
-                }
-
-                if (ReferenceEquals(ev, selectedEvent))
-                {
-                    if (CoordinateSnapTool.TryGetFocusedEffectVisual(out var focusedVisual))
-                    {
-                        visuals.Add(focusedVisual);
-                        selectedNonCameraWasAdded = true;
-                    }
                     continue;
                 }
 
@@ -89,15 +48,110 @@ namespace Euclid
                     visuals.Add(visual);
                 }
             }
+        }
 
-            // During an inspector rebuild selectedEvent can briefly be a replacement object that is
-            // not yet present in editor.events. Keep its interactive marker visible in that frame.
-            if (!selectedNonCameraWasAdded && selectedEvent != null &&
-                selectedEvent.eventType != LevelEventType.MoveCamera &&
-                CoordinateSnapTool.TryGetFocusedEffectVisual(out var selectedVisual))
+        private static void AppendBackgroundMoveCameraVisuals(
+            scnEditor editor,
+            LevelEvent selectedEvent,
+            List<EffectOverlayVisual> visuals)
+        {
+            var timeline = new List<CameraTimelineItem>();
+            var index = 0;
+            foreach (var ev in GameCompat.GetEditorEvents(editor))
             {
-                visuals.Add(selectedVisual);
+                if (ev != null && ev.eventType == LevelEventType.MoveCamera)
+                {
+                    timeline.Add(new CameraTimelineItem(ev, index, GetEventStartTime(editor, ev)));
+                }
+                index++;
             }
+
+            timeline.Sort(CameraTimelineItem.Compare);
+            var tileSize = Mathf.Max(GameCompat.GetTileSize(), 0.000001f);
+            var state = CameraMarkerState.FromLevelSettings(editor, tileSize);
+
+            for (var i = 0; i < timeline.Count; i++)
+            {
+                var item = timeline[i];
+                state = ApplyMoveCamera(editor, state, item.Event, tileSize);
+                if (ReferenceEquals(item.Event, selectedEvent))
+                {
+                    continue;
+                }
+
+                visuals.Add(new EffectOverlayVisual(
+                    EffectOverlayKind.CameraMove,
+                    state.ReferencePoint,
+                    state.Center,
+                    EuclidText.Get("effect.moveCamera")));
+            }
+        }
+
+        private static CameraMarkerState ApplyMoveCamera(
+            scnEditor editor,
+            CameraMarkerState previous,
+            LevelEvent ev,
+            float tileSize)
+        {
+            var relativeTo = IsPropertyUsed(ev, "relativeTo")
+                ? GetCameraRelativeTo(ev, previous.RelativeTo)
+                : previous.RelativeTo;
+            var positionUsed = IsPropertyUsed(ev, "position");
+            var offsetTiles = positionUsed ? GetVector2(ev, "position", previous.OffsetTiles) : previous.OffsetTiles;
+            var referencePoint = ResolveCameraReference(editor, previous.Center, ev.floor, relativeTo);
+            var center = positionUsed ? referencePoint + offsetTiles * tileSize : previous.Center;
+            return new CameraMarkerState(center, relativeTo, offsetTiles, referencePoint);
+        }
+
+        private static Vector2 ResolveCameraReference(
+            scnEditor editor,
+            Vector2 previousCenter,
+            int floor,
+            CamMovementType relativeTo)
+        {
+            switch (relativeTo)
+            {
+                case CamMovementType.Global:
+                    return Vector2.zero;
+                case CamMovementType.LastPosition:
+                case CamMovementType.LastPositionNoRotation:
+                    return previousCenter;
+                case CamMovementType.Player:
+                case CamMovementType.Tile:
+                default:
+                    return GetFloorPosition(editor, floor);
+            }
+        }
+
+        private static CamMovementType GetCameraRelativeTo(LevelEvent ev, CamMovementType fallback)
+        {
+            if (LevelEventCompat.TryGetRaw(ev, "relativeTo", out var raw))
+            {
+                if (raw is CamMovementType movementType)
+                {
+                    return movementType;
+                }
+
+                if (raw is int index)
+                {
+                    try
+                    {
+                        return (CamMovementType)index;
+                    }
+                    catch (Exception)
+                    {
+                        return fallback;
+                    }
+                }
+
+                var text = raw?.ToString();
+                if (!string.IsNullOrWhiteSpace(text) && Enum.TryParse(text.Trim(), true, out CamMovementType parsed))
+                {
+                    return parsed;
+                }
+            }
+
+            return fallback;
         }
 
         private static bool TryBuildReadOnlyVisual(scnEditor editor, LevelEvent ev, out EffectOverlayVisual visual)
@@ -150,8 +204,8 @@ namespace Euclid
                 var displayedFloorWorld = GetFloorPosition(editor, referenceFloor);
                 if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
                 {
-                    // This PositionTrack has already been applied to the unselected floor. Remove
-                    // only this event's own offset to recover its pre-effect tile/reference point.
+                    // The unselected PositionTrack is already applied. Its actual floor is the
+                    // position marker; subtract only its own offset to recover the tile marker.
                     targetWorld = displayedFloorWorld;
                     referenceWorld = displayedFloorWorld - offsetTiles * tileSize;
                 }
@@ -256,6 +310,23 @@ namespace Euclid
             }
         }
 
+        private static Vector2 GetVector2(LevelEvent ev, string key, Vector2 fallback)
+        {
+            if (LevelEventCompat.TryGetRaw(ev, key, out var raw) && TryConvertVector2(raw, out var value))
+            {
+                return value;
+            }
+
+            try
+            {
+                return Sanitize(ev.Get<Vector2>(key));
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
+        }
+
         private static bool TryConvertVector2(object raw, out Vector2 value)
         {
             switch (raw)
@@ -313,39 +384,157 @@ namespace Euclid
             return float.IsNaN(value) || float.IsInfinity(value) ? 0f : value;
         }
 
+        private static bool IsPropertyUsed(LevelEvent ev, string key)
+        {
+            return ev.disabled == null || !ev.disabled.TryGetValue(key, out var disabled) || !disabled;
+        }
+
+        private static double GetEventStartTime(scnEditor editor, LevelEvent ev)
+        {
+            var floor = GetFloor(editor, ev.floor);
+            if (floor == null)
+            {
+                return ev.floor + SafeGetFloat(ev, "angleOffset", 0f) / 180d;
+            }
+
+            var bpm = 100d;
+            try
+            {
+                if (GameCompat.TryGetLevelSetting(editor, "bpm", out double levelBpm))
+                {
+                    bpm = levelBpm;
+                }
+            }
+            catch (Exception)
+            {
+                // Keep fallback BPM while the editor rebuilds level settings.
+            }
+
+            var speed = Math.Abs(floor.speed) > 0.0001f ? floor.speed : 1f;
+            return floor.entryTime + SafeGetFloat(ev, "angleOffset", 0f) / 180d * 60d / (bpm * speed);
+        }
+
+        private static float SafeGetFloat(LevelEvent ev, string key, float fallback)
+        {
+            try
+            {
+                return ev.GetFloat(key);
+            }
+            catch (Exception)
+            {
+                return fallback;
+            }
+        }
+
         private static int GetLastFloorIndex(scnEditor editor)
         {
             var floors = GameCompat.GetFloors(editor);
             return floors.Count > 0 ? floors.Count - 1 : 0;
         }
 
+        private static scrFloor GetFloor(scnEditor editor, int floor)
+        {
+            var floors = GameCompat.GetFloors(editor);
+            for (var i = 0; i < floors.Count; i++)
+            {
+                var candidate = floors[i];
+                if (candidate != null && candidate.seqID == floor)
+                {
+                    return candidate;
+                }
+            }
+
+            return floor >= 0 && floor < floors.Count ? floors[floor] : null;
+        }
+
         private static Vector2 GetFloorPosition(scnEditor editor, int floor)
         {
             try
             {
-                var floors = GameCompat.GetFloors(editor);
-                for (var i = 0; i < floors.Count; i++)
+                var candidate = GetFloor(editor, floor);
+                if (candidate != null)
                 {
-                    var candidate = floors[i];
-                    if (candidate != null && candidate.seqID == floor)
-                    {
-                        var position = candidate.transform.position;
-                        return new Vector2(position.x, position.y);
-                    }
-                }
-
-                if (floor >= 0 && floor < floors.Count && floors[floor] != null)
-                {
-                    var position = floors[floor].transform.position;
+                    var position = candidate.transform.position;
                     return new Vector2(position.x, position.y);
                 }
             }
             catch (Exception)
             {
-                // Ignore one-frame editor rebuild gaps; the overlay will refresh again immediately.
+                // Ignore one-frame editor rebuild gaps; the overlay refreshes continuously.
             }
 
             return Vector2.zero;
+        }
+
+        private readonly struct CameraMarkerState
+        {
+            internal CameraMarkerState(
+                Vector2 center,
+                CamMovementType relativeTo,
+                Vector2 offsetTiles,
+                Vector2 referencePoint)
+            {
+                Center = center;
+                RelativeTo = relativeTo;
+                OffsetTiles = offsetTiles;
+                ReferencePoint = referencePoint;
+            }
+
+            internal Vector2 Center { get; }
+            internal CamMovementType RelativeTo { get; }
+            internal Vector2 OffsetTiles { get; }
+            internal Vector2 ReferencePoint { get; }
+
+            internal static CameraMarkerState FromLevelSettings(scnEditor editor, float tileSize)
+            {
+                var relativeTo = CamMovementType.Tile;
+                var offsetTiles = Vector2.zero;
+
+                try
+                {
+                    if (GameCompat.TryGetLevelSetting(editor, "camRelativeTo", out CamMovementType levelRelativeTo))
+                    {
+                        relativeTo = levelRelativeTo;
+                    }
+                    if (GameCompat.TryGetLevelSetting(editor, "camPosition", out Vector2 levelPosition))
+                    {
+                        offsetTiles = Sanitize(levelPosition);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Defaults are valid until level settings are available.
+                }
+
+                var referencePoint = ResolveCameraReference(editor, Vector2.zero, 0, relativeTo);
+                return new CameraMarkerState(
+                    referencePoint + offsetTiles * tileSize,
+                    relativeTo,
+                    offsetTiles,
+                    referencePoint);
+            }
+        }
+
+        private readonly struct CameraTimelineItem
+        {
+            private const double TimeEpsilon = 0.000001d;
+
+            internal CameraTimelineItem(LevelEvent ev, int index, double startTime)
+            {
+                Event = ev;
+                Index = index;
+                StartTime = startTime;
+            }
+
+            internal LevelEvent Event { get; }
+            private int Index { get; }
+            private double StartTime { get; }
+
+            internal static int Compare(CameraTimelineItem left, CameraTimelineItem right)
+            {
+                var timeCompare = left.StartTime.CompareTo(right.StartTime);
+                return timeCompare != 0 ? timeCompare : left.Index.CompareTo(right.Index);
+            }
         }
     }
 }
