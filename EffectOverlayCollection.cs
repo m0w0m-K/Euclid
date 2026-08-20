@@ -157,7 +157,7 @@ namespace Euclid
         private static bool TryBuildReadOnlyVisual(scnEditor editor, LevelEvent ev, out EffectOverlayVisual visual)
         {
             visual = default;
-            if (editor == null || ev == null || !TryGetPositionOffset(ev, out var offsetTiles))
+            if (editor == null || ev == null || !TryGetPositionOffset(ev, out var rawOffsetTiles))
             {
                 return false;
             }
@@ -180,6 +180,12 @@ namespace Euclid
                 default:
                     return false;
             }
+
+            // Disabled properties keep their stored raw value, but ADOFAI applies zero. Background
+            // markers must use that effective value just like the selected interactive marker.
+            var offsetTiles = LevelEventCompat.IsPropertyEnabled(ev, "positionOffset")
+                ? rawOffsetTiles
+                : Vector2.zero;
 
             var tileSize = Mathf.Max(GameCompat.GetTileSize(), 0.000001f);
             Vector2 referenceWorld;
@@ -204,8 +210,8 @@ namespace Euclid
                 var displayedFloorWorld = GetFloorPosition(editor, referenceFloor);
                 if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
                 {
-                    // The unselected PositionTrack is already applied. Its actual floor is the
-                    // position marker; subtract only its own offset to recover the tile marker.
+                    // The unselected PositionTrack is already applied. With the property disabled,
+                    // effective offset is zero and both markers coincide with the restored tile.
                     targetWorld = displayedFloorWorld;
                     referenceWorld = displayedFloorWorld - offsetTiles * tileSize;
                 }
@@ -386,7 +392,7 @@ namespace Euclid
 
         private static bool IsPropertyUsed(LevelEvent ev, string key)
         {
-            return ev.disabled == null || !ev.disabled.TryGetValue(key, out var disabled) || !disabled;
+            return LevelEventCompat.IsPropertyEnabled(ev, key);
         }
 
         private static double GetEventStartTime(scnEditor editor, LevelEvent ev)
