@@ -21,7 +21,7 @@ namespace Euclid
 
         // PositionTrack updates positionOffset before ADOFAI necessarily reapplies the floor
         // transform. Keep the zero-offset origin stable while raw inspector/drag values are ahead
-        // of the displayed tile, then resynchronize once the floor catches up.
+        // of the displayed tile, then resynchronize from the applied tile once the floor catches up.
         private const float PositionTrackSyncToleranceSqr = 0.0001f;
         private static bool hasPositionTrackReference;
         private static LevelEvent positionTrackReferenceEvent;
@@ -717,18 +717,20 @@ namespace Euclid
 
             if (rawChanged && !floorChanged)
             {
-                // positionOffset changed first, but ADOFAI has not moved the floor yet. The target
-                // marker must move immediately while its absolute zero-origin remains unchanged.
+                // positionOffset changed first, but ADOFAI has not moved the floor yet. Keep the
+                // tile marker at the last applied zero-origin while the position marker previews
+                // the new raw offset immediately.
                 positionTrackReferenceProvisional = false;
                 return positionTrackZeroReference;
             }
 
             if (rawChanged && floorChanged)
             {
-                // ADOFAI has now applied the pending PositionTrack value (typically on focus loss).
-                // Do NOT rebase the zero-origin from the newly moved tile: doing so moves Euclid's
-                // marker a second time. Advance only the applied-state snapshot so the absolute
-                // marker coordinates before and after focus loss are identical.
+                // Focus loss/application: the displayed floor now contains the current PositionTrack
+                // offset. Remove exactly that offset to recover the pre-effect tile position. This
+                // makes the position marker land on the actual tile while the tile marker remains at
+                // the position the tile occupied before this PositionTrack was applied.
+                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
                 positionTrackAppliedOffsetTiles = rawOffsetTiles;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
                 positionTrackReferenceProvisional = false;
@@ -737,9 +739,10 @@ namespace Euclid
 
             if (!rawChanged && floorChanged)
             {
-                // PositionTrack can move the displayed floor transform without changing the raw
-                // positionOffset value. Keep the zero-offset reference at its absolute world
-                // coordinate instead of following the moved tile.
+                // An earlier track/path effect moved this tile while the current PositionTrack offset
+                // stayed unchanged. Re-derive the zero-origin from the new applied tile position so
+                // upstream movement is followed while this event's own offset is still removed.
+                positionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
                 positionTrackAppliedFloorWorld = displayedFloorWorld;
             }
 
