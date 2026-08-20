@@ -8,11 +8,19 @@ namespace Euclid
     internal static class EuclidMod
     {
         private const string SettingsFileName = "Settings.json";
-        private static readonly Color DefaultCameraFrameColor = new Color(1f, 0.22f, 0.22f, 0.95f);
+        private static readonly Color DefaultCameraFrameColor = new Color(1f, 0.30f, 0.30f, 0.92f);
 
         private static EuclidBehaviour behaviour;
         private static UnityModManager.ModEntry modEntry;
         private static OverlaySettings settings = OverlaySettings.CreateDefault();
+
+        // Keep the UMM options compact. These are presentation state only and intentionally are not
+        // persisted to Settings.json.
+        private static bool showCameraMovePalette;
+        private static bool showTrackMovePalette;
+        private static bool showTrackPositionPalette;
+        private static bool showFreeRoamPalette;
+        private static bool showDecorationMovePalette;
 
         internal static bool Enabled { get; private set; }
 
@@ -40,6 +48,13 @@ namespace Euclid
                         settings.CameraMoveSegmentColor,
                         settings.CameraMoveNameColor,
                         OverlaySettings.DefaultCameraMovePalette);
+                case EffectOverlayKind.TrackMove:
+                    return ResolvePalette(
+                        settings.TrackMoveTileMarkerColor,
+                        settings.TrackMovePositionMarkerColor,
+                        settings.TrackMoveSegmentColor,
+                        settings.TrackMoveNameColor,
+                        OverlaySettings.DefaultTrackMovePalette);
                 case EffectOverlayKind.TrackPosition:
                     return ResolvePalette(
                         settings.TrackPositionTileMarkerColor,
@@ -54,13 +69,15 @@ namespace Euclid
                         settings.FreeRoamSegmentColor,
                         settings.FreeRoamNameColor,
                         OverlaySettings.DefaultFreeRoamPalette);
-                default:
+                case EffectOverlayKind.DecorationMove:
                     return ResolvePalette(
-                        settings.TrackMoveTileMarkerColor,
-                        settings.TrackMovePositionMarkerColor,
-                        settings.TrackMoveSegmentColor,
-                        settings.TrackMoveNameColor,
-                        OverlaySettings.DefaultTrackMovePalette);
+                        settings.DecorationMoveTileMarkerColor,
+                        settings.DecorationMovePositionMarkerColor,
+                        settings.DecorationMoveSegmentColor,
+                        settings.DecorationMoveNameColor,
+                        OverlaySettings.DefaultDecorationMovePalette);
+                default:
+                    return OverlaySettings.DefaultTrackMovePalette;
             }
         }
 
@@ -113,14 +130,18 @@ namespace Euclid
                 settings.ShowCameraFrame,
                 EuclidText.Get("settings.showCameraFrame"));
 
-            GUILayout.Space(4f);
+            // Keep global visibility controls together before the color section.
+            AllEffectMarkerSettings.DrawGui();
+
+            GUILayout.Space(8f);
             DrawColorOption(
                 EuclidText.Get("settings.cameraFrameColor"),
                 ref settings.CameraFrameColor,
                 DefaultCameraFrameColor);
 
-            GUILayout.Space(10f);
-            DrawEffectPalette(
+            GUILayout.Space(8f);
+            DrawCollapsibleEffectPalette(
+                ref showCameraMovePalette,
                 EuclidText.Get("effect.moveCamera"),
                 ref settings.CameraMoveTileMarkerColor,
                 ref settings.CameraMovePositionMarkerColor,
@@ -128,7 +149,8 @@ namespace Euclid
                 ref settings.CameraMoveNameColor,
                 OverlaySettings.DefaultCameraMovePalette);
 
-            DrawEffectPalette(
+            DrawCollapsibleEffectPalette(
+                ref showTrackMovePalette,
                 EuclidText.Get("effect.moveTrack"),
                 ref settings.TrackMoveTileMarkerColor,
                 ref settings.TrackMovePositionMarkerColor,
@@ -136,7 +158,8 @@ namespace Euclid
                 ref settings.TrackMoveNameColor,
                 OverlaySettings.DefaultTrackMovePalette);
 
-            DrawEffectPalette(
+            DrawCollapsibleEffectPalette(
+                ref showTrackPositionPalette,
                 EuclidText.Get("effect.positionTrack"),
                 ref settings.TrackPositionTileMarkerColor,
                 ref settings.TrackPositionPositionMarkerColor,
@@ -144,7 +167,8 @@ namespace Euclid
                 ref settings.TrackPositionNameColor,
                 OverlaySettings.DefaultTrackPositionPalette);
 
-            DrawEffectPalette(
+            DrawCollapsibleEffectPalette(
+                ref showFreeRoamPalette,
                 EuclidText.Get("effect.freeRoam"),
                 ref settings.FreeRoamTileMarkerColor,
                 ref settings.FreeRoamPositionMarkerColor,
@@ -152,11 +176,27 @@ namespace Euclid
                 ref settings.FreeRoamNameColor,
                 OverlaySettings.DefaultFreeRoamPalette);
 
+            DrawCollapsibleEffectPalette(
+                ref showDecorationMovePalette,
+                GetDecorationMoveLabel(),
+                ref settings.DecorationMoveTileMarkerColor,
+                ref settings.DecorationMovePositionMarkerColor,
+                ref settings.DecorationMoveSegmentColor,
+                ref settings.DecorationMoveNameColor,
+                OverlaySettings.DefaultDecorationMovePalette);
+
             GUILayout.Label(EuclidText.Get("settings.colorHint"));
 
             // UMM invokes this every frame while Options is open. Dirtying the lower Canvas here
-            // makes both the geometry AND the preview swatches react immediately while typing.
+            // makes both the geometry and the preview swatches react immediately while typing.
             ConstructionShapeCanvasOverlay.Refresh();
+        }
+
+        private static string GetDecorationMoveLabel()
+        {
+            return string.Equals(EuclidText.CurrentLocaleCode, "ko", StringComparison.OrdinalIgnoreCase)
+                ? "장식 이동"
+                : "Move Decorations";
         }
 
         private static void OnSaveGui(UnityModManager.ModEntry entry)
@@ -165,7 +205,8 @@ namespace Euclid
             SaveSettings();
         }
 
-        private static void DrawEffectPalette(
+        private static void DrawCollapsibleEffectPalette(
+            ref bool expanded,
             string title,
             ref string tileMarker,
             ref string positionMarker,
@@ -173,12 +214,23 @@ namespace Euclid
             ref string name,
             EffectOverlayColors fallback)
         {
-            GUILayout.Label(title);
+            var prefix = expanded ? "▼ " : "▶ ";
+            if (GUILayout.Button(prefix + title))
+            {
+                expanded = !expanded;
+            }
+
+            if (!expanded)
+            {
+                GUILayout.Space(2f);
+                return;
+            }
+
             DrawColorOption(EuclidText.Get("settings.tileMarkerColor"), ref tileMarker, fallback.TileMarker);
             DrawColorOption(EuclidText.Get("settings.positionMarkerColor"), ref positionMarker, fallback.PositionMarker);
             DrawColorOption(EuclidText.Get("settings.segmentColor"), ref segment, fallback.Segment);
             DrawColorOption(EuclidText.Get("settings.effectNameColor"), ref name, fallback.Label);
-            GUILayout.Space(8f);
+            GUILayout.Space(6f);
         }
 
         private static void DrawColorOption(string label, ref string hex, Color fallback)
@@ -187,9 +239,8 @@ namespace Euclid
             GUILayout.Label(label, GUILayout.Width(180f));
             hex = GUILayout.TextField(hex ?? string.Empty, GUILayout.Width(110f));
 
-            // GUI.backgroundColor does not reliably tint UMM's skinned Box, which is why the old
-            // preview could stay visually unchanged even though the overlay itself updated.
-            // Draw the swatch texture directly so its pixels always reflect the current text value.
+            // GUI.backgroundColor does not reliably tint UMM's skinned Box. Draw the swatch
+            // texture directly so its pixels always reflect the current text value.
             var swatch = GUILayoutUtility.GetRect(34f, 20f, GUILayout.Width(34f), GUILayout.Height(20f));
             var oldColor = GUI.color;
             GUI.color = ResolveColor(hex, fallback);
@@ -268,9 +319,13 @@ namespace Euclid
                 ReadColor(json, nameof(OverlaySettings.FreeRoamSegmentColor), ref settings.FreeRoamSegmentColor);
                 ReadColor(json, nameof(OverlaySettings.FreeRoamNameColor), ref settings.FreeRoamNameColor);
 
-                // 0.7.48/0.7.49 stored one generic effect color. If present, use it as a sensible
-                // migration fallback for target markers only; all new per-effect fields remain
-                // independently editable afterwards.
+                ReadColor(json, nameof(OverlaySettings.DecorationMoveTileMarkerColor), ref settings.DecorationMoveTileMarkerColor);
+                ReadColor(json, nameof(OverlaySettings.DecorationMovePositionMarkerColor), ref settings.DecorationMovePositionMarkerColor);
+                ReadColor(json, nameof(OverlaySettings.DecorationMoveSegmentColor), ref settings.DecorationMoveSegmentColor);
+                ReadColor(json, nameof(OverlaySettings.DecorationMoveNameColor), ref settings.DecorationMoveNameColor);
+
+                // 0.7.48/0.7.49 stored one generic effect color. If present, use it as a migration
+                // fallback for target markers only; newer per-effect fields remain independent.
                 var legacy = ReadJsonString(json, "EffectMarkerColor", null);
                 if (!string.IsNullOrWhiteSpace(legacy))
                 {
@@ -318,6 +373,10 @@ namespace Euclid
                     JsonColor(nameof(OverlaySettings.FreeRoamPositionMarkerColor), settings.FreeRoamPositionMarkerColor),
                     JsonColor(nameof(OverlaySettings.FreeRoamSegmentColor), settings.FreeRoamSegmentColor),
                     JsonColor(nameof(OverlaySettings.FreeRoamNameColor), settings.FreeRoamNameColor),
+                    JsonColor(nameof(OverlaySettings.DecorationMoveTileMarkerColor), settings.DecorationMoveTileMarkerColor),
+                    JsonColor(nameof(OverlaySettings.DecorationMovePositionMarkerColor), settings.DecorationMovePositionMarkerColor),
+                    JsonColor(nameof(OverlaySettings.DecorationMoveSegmentColor), settings.DecorationMoveSegmentColor),
+                    JsonColor(nameof(OverlaySettings.DecorationMoveNameColor), settings.DecorationMoveNameColor),
                 };
 
                 File.WriteAllText(GetSettingsPath(), "{\n" + string.Join(",\n", lines) + "\n}\n");
@@ -443,6 +502,12 @@ namespace Euclid
                 ref settings.FreeRoamSegmentColor,
                 ref settings.FreeRoamNameColor,
                 OverlaySettings.DefaultFreeRoamPalette);
+            NormalizePalette(
+                ref settings.DecorationMoveTileMarkerColor,
+                ref settings.DecorationMovePositionMarkerColor,
+                ref settings.DecorationMoveSegmentColor,
+                ref settings.DecorationMoveNameColor,
+                OverlaySettings.DefaultDecorationMovePalette);
         }
 
         private static void NormalizePalette(
@@ -466,53 +531,49 @@ namespace Euclid
         [Serializable]
         private sealed class OverlaySettings
         {
-            // Each effect owns one hue family so dense all-effect overlays stay readable at a glance.
-            // Within a family, marker/segment/label variants differ in lightness and alpha.
-            internal static readonly EffectOverlayColors DefaultCameraMovePalette = new EffectOverlayColors(
-                new Color(1f, 0.45f, 0.45f, 0.95f),
-                new Color(1f, 0.22f, 0.22f, 0.98f),
-                new Color(1f, 0.33f, 0.33f, 0.78f),
-                new Color(1f, 0.55f, 0.55f, 1f));
-            internal static readonly EffectOverlayColors DefaultTrackMovePalette = new EffectOverlayColors(
-                new Color(1f, 0.85f, 0.35f, 0.95f),
-                new Color(1f, 0.72f, 0.12f, 0.98f),
-                new Color(1f, 0.78f, 0.20f, 0.78f),
-                new Color(1f, 0.88f, 0.45f, 1f));
-            internal static readonly EffectOverlayColors DefaultTrackPositionPalette = new EffectOverlayColors(
-                new Color(0.45f, 1f, 0.60f, 0.95f),
-                new Color(0.22f, 0.95f, 0.42f, 0.98f),
-                new Color(0.30f, 0.90f, 0.50f, 0.78f),
-                new Color(0.55f, 1f, 0.68f, 1f));
-            internal static readonly EffectOverlayColors DefaultFreeRoamPalette = new EffectOverlayColors(
-                new Color(0.40f, 0.75f, 1f, 0.95f),
-                new Color(0.20f, 0.55f, 1f, 0.98f),
-                new Color(0.30f, 0.65f, 1f, 0.78f),
-                new Color(0.55f, 0.80f, 1f, 1f));
+            // Effect identity is communicated by hue. Every palette uses the same alpha and the
+            // same color for marker/segment/name; marker shapes already distinguish their roles.
+            internal static readonly EffectOverlayColors DefaultCameraMovePalette = SolidPalette(1f, 0.30f, 0.30f);
+            internal static readonly EffectOverlayColors DefaultTrackMovePalette = SolidPalette(1f, 0.82f, 0.25f);
+            internal static readonly EffectOverlayColors DefaultTrackPositionPalette = SolidPalette(0.28f, 1f, 0.42f);
+            internal static readonly EffectOverlayColors DefaultFreeRoamPalette = SolidPalette(0.30f, 0.65f, 1f);
+            internal static readonly EffectOverlayColors DefaultDecorationMovePalette = SolidPalette(1f, 1f, 1f);
 
             public bool ShowCameraFrame = true;
-            public string CameraFrameColor = "FF3838F2";
+            public string CameraFrameColor = "FF4D4DEB";
 
-            public string CameraMoveTileMarkerColor = "FF7373F2";
-            public string CameraMovePositionMarkerColor = "FF3838FA";
-            public string CameraMoveSegmentColor = "FF5454C7";
-            public string CameraMoveNameColor = "FF8C8CFF";
+            public string CameraMoveTileMarkerColor = "FF4D4DEB";
+            public string CameraMovePositionMarkerColor = "FF4D4DEB";
+            public string CameraMoveSegmentColor = "FF4D4DEB";
+            public string CameraMoveNameColor = "FF4D4DEB";
 
-            public string TrackMoveTileMarkerColor = "FFD959F2";
-            public string TrackMovePositionMarkerColor = "FFB81FFA";
-            public string TrackMoveSegmentColor = "FFC733C7";
-            public string TrackMoveNameColor = "FFE673FF";
+            public string TrackMoveTileMarkerColor = "FFD140EB";
+            public string TrackMovePositionMarkerColor = "FFD140EB";
+            public string TrackMoveSegmentColor = "FFD140EB";
+            public string TrackMoveNameColor = "FFD140EB";
 
-            public string TrackPositionTileMarkerColor = "73FF99F2";
-            public string TrackPositionPositionMarkerColor = "38F26BFA";
-            public string TrackPositionSegmentColor = "4DE680C7";
-            public string TrackPositionNameColor = "8CFFADFF";
+            public string TrackPositionTileMarkerColor = "47FF6BEB";
+            public string TrackPositionPositionMarkerColor = "47FF6BEB";
+            public string TrackPositionSegmentColor = "47FF6BEB";
+            public string TrackPositionNameColor = "47FF6BEB";
 
-            public string FreeRoamTileMarkerColor = "66BFFFF2";
-            public string FreeRoamPositionMarkerColor = "338CFFFA";
-            public string FreeRoamSegmentColor = "4DA6FFC7";
-            public string FreeRoamNameColor = "8CCCFFFF";
+            public string FreeRoamTileMarkerColor = "4DA6FFEB";
+            public string FreeRoamPositionMarkerColor = "4DA6FFEB";
+            public string FreeRoamSegmentColor = "4DA6FFEB";
+            public string FreeRoamNameColor = "4DA6FFEB";
+
+            public string DecorationMoveTileMarkerColor = "FFFFFFEB";
+            public string DecorationMovePositionMarkerColor = "FFFFFFEB";
+            public string DecorationMoveSegmentColor = "FFFFFFEB";
+            public string DecorationMoveNameColor = "FFFFFFEB";
 
             internal static OverlaySettings CreateDefault() => new OverlaySettings();
+
+            private static EffectOverlayColors SolidPalette(float r, float g, float b)
+            {
+                var color = new Color(r, g, b, 0.92f);
+                return new EffectOverlayColors(color, color, color, color);
+            }
         }
     }
 }
