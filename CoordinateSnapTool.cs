@@ -14,25 +14,10 @@ namespace Euclid
     internal static class CoordinateSnapTool
     {
         private const double CachedPointToleranceSqr = 0.001d * 0.001d;
-        private const float PositionTrackReferenceToleranceSqr = 0.000001f;
-        private const float PositionTrackOffsetToleranceSqr = 0.00000001f;
         private static bool hasCachedGuideParameter;
         private static int cachedGuideRevision;
         private static string cachedTargetKey;
         private static double cachedGuideParameter;
-
-        // PositionTrack's inspector edits positionOffset before ADOFAI reapplies the floor transform.
-        // If we recompute `floor.position - rawOffset` every frame, the zero-offset origin moves while
-        // the user is typing and the next drag is measured from the already-moved tile. Keep the
-        // last known applied floor/offset pair and a stable world-space origin for (0, 0) instead.
-        private static bool hasCachedPositionTrackReference;
-        private static LevelEvent cachedPositionTrackEvent;
-        private static int cachedPositionTrackReferenceFloor = -1;
-        private static string cachedPositionTrackRelativeTo;
-        private static float cachedPositionTrackTileSize;
-        private static Vector2 cachedPositionTrackZeroReference;
-        private static Vector2 cachedPositionTrackAppliedOffsetTiles;
-        private static Vector2 cachedPositionTrackAppliedFloorWorld;
 
         internal static string DescribeTarget(CameraFrameSnapshot cameraFrame, string requestedKey)
         {
@@ -653,89 +638,18 @@ namespace Euclid
             }
 
             var reference = GetFloorPosition(editor, referenceFloor);
-            if (!string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
+
+            // ADOFAI's editor transform for ThisTile already contains the focused PositionTrack
+            // displacement. Recover the position that this tile would have if this event did not
+            // exist, then use that exact origin both for the reference marker and for converting a
+            // dragged/snapped world point back into positionOffset. Start/End must not subtract
+            // the offset even when the event happens to live on the first/last floor.
+            if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
             {
-                // If the same event changes away from ThisTile, its old zero-origin cache is no
-                // longer meaningful. Re-entering ThisTile will capture a fresh synchronized base.
-                if (ReferenceEquals(cachedPositionTrackEvent, ev))
-                {
-                    hasCachedPositionTrackReference = false;
-                }
-                return reference;
+                reference -= offsetTiles * Mathf.Max(tileSize, 0.000001f);
             }
 
-            return GetStableThisTilePositionTrackReference(
-                ev,
-                referenceFloor,
-                relativeTo,
-                reference,
-                offsetTiles,
-                tileSize);
-        }
-
-        private static Vector2 GetStableThisTilePositionTrackReference(
-            LevelEvent ev,
-            int referenceFloor,
-            string relativeTo,
-            Vector2 displayedFloorWorld,
-            Vector2 rawOffsetTiles,
-            float tileSize)
-        {
-            var scale = Mathf.Max(tileSize, 0.000001f);
-            var cacheMatches = hasCachedPositionTrackReference &&
-                ReferenceEquals(cachedPositionTrackEvent, ev) &&
-                cachedPositionTrackReferenceFloor == referenceFloor &&
-                string.Equals(cachedPositionTrackRelativeTo, relativeTo, StringComparison.OrdinalIgnoreCase) &&
-                Mathf.Abs(cachedPositionTrackTileSize - scale) <= 0.000001f;
-
-            if (!cacheMatches)
-            {
-                hasCachedPositionTrackReference = true;
-                cachedPositionTrackEvent = ev;
-                cachedPositionTrackReferenceFloor = referenceFloor;
-                cachedPositionTrackRelativeTo = relativeTo;
-                cachedPositionTrackTileSize = scale;
-                cachedPositionTrackZeroReference = displayedFloorWorld - rawOffsetTiles * scale;
-                cachedPositionTrackAppliedOffsetTiles = rawOffsetTiles;
-                cachedPositionTrackAppliedFloorWorld = displayedFloorWorld;
-                return cachedPositionTrackZeroReference;
-            }
-
-            var floorDelta = displayedFloorWorld - cachedPositionTrackAppliedFloorWorld;
-            var floorChanged = floorDelta.sqrMagnitude > PositionTrackReferenceToleranceSqr;
-            var offsetChanged = (rawOffsetTiles - cachedPositionTrackAppliedOffsetTiles).sqrMagnitude > PositionTrackOffsetToleranceSqr;
-
-            if (!floorChanged)
-            {
-                // Raw positionOffset can change while the inspector field is still focused, but
-                // ADOFAI has not moved the tile yet. Keep both the zero marker and the last-applied
-                // pair untouched; WorldPoint may preview the raw value around this stable origin.
-                return cachedPositionTrackZeroReference;
-            }
-
-            if (!offsetChanged)
-            {
-                // The floor moved without this PositionTrack offset changing (for example because
-                // the path geometry itself changed). Move the zero origin by the same world delta.
-                cachedPositionTrackZeroReference += floorDelta;
-                cachedPositionTrackAppliedFloorWorld = displayedFloorWorld;
-                return cachedPositionTrackZeroReference;
-            }
-
-            // Both the raw value and the displayed floor moved. This is the normal focus-loss/apply
-            // path: once ADOFAI catches up, displayed - newOffset should return to the same (0, 0)
-            // origin. If it does not, accept the new candidate because the underlying path also
-            // changed in the same update.
-            var appliedCandidate = displayedFloorWorld - rawOffsetTiles * scale;
-            if ((appliedCandidate - cachedPositionTrackZeroReference).sqrMagnitude >
-                PositionTrackReferenceToleranceSqr * 16f)
-            {
-                cachedPositionTrackZeroReference = appliedCandidate;
-            }
-
-            cachedPositionTrackAppliedOffsetTiles = rawOffsetTiles;
-            cachedPositionTrackAppliedFloorWorld = displayedFloorWorld;
-            return cachedPositionTrackZeroReference;
+            return reference;
         }
 
         private static string GetTileRelativeTo(LevelEvent ev)
