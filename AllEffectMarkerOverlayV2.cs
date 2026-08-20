@@ -292,7 +292,7 @@ namespace Euclid
             out EffectOverlayVisual visual)
         {
             visual = default;
-            if (editor == null || ev == null || !TryGetVector2(ev, "positionOffset", out var offsetTiles))
+            if (editor == null || ev == null || !TryGetVector2(ev, "positionOffset", out var rawOffsetTiles))
             {
                 return false;
             }
@@ -302,7 +302,6 @@ namespace Euclid
             switch (eventName)
             {
                 case "MoveTrack":
-                case "MoveDecorations":
                     kind = EffectOverlayKind.TrackMove;
                     break;
                 case "PositionTrack":
@@ -315,6 +314,10 @@ namespace Euclid
                 default:
                     return false;
             }
+
+            var offsetTiles = LevelEventCompat.IsPropertyEnabled(ev, "positionOffset")
+                ? rawOffsetTiles
+                : Vector2.zero;
 
             var tileSize = Mathf.Max(GameCompat.GetTileSize(), 0.000001f);
             Vector2 referenceWorld;
