@@ -370,12 +370,61 @@ namespace Euclid
             {
                 var editor = scnEditor.instance;
                 var panel = GameCompat.GetLevelEventsPanel(editor);
-                return panel != null ? GameCompat.GetSelectedEvent(panel) : null;
+                if (editor == null || panel == null)
+                {
+                    return null;
+                }
+
+                var ev = GameCompat.GetSelectedEvent(panel);
+                if (ev == null)
+                {
+                    return null;
+                }
+
+                // ADOFAI can leave levelEventsPanel.selectedEvent pointing at the object that was
+                // just deleted. Reject that stale reference so PositionTrack/MoveTrack markers
+                // disappear as soon as the event is removed instead of lingering in the viewport.
+                if (GameCompat.TryGetSelectedEventType(panel, out var selectedType) &&
+                    selectedType != ev.eventType)
+                {
+                    return null;
+                }
+
+                return CurrentEditorContainsEvent(editor, ev) ? ev : null;
             }
             catch (Exception)
             {
                 return null;
             }
+        }
+
+        private static bool CurrentEditorContainsEvent(scnEditor editor, LevelEvent ev)
+        {
+            if (editor == null || ev == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                // editor.events is the authoritative collection used by the editor timeline.
+                // Do not fall back to the panel's selected-floor collection here: that collection
+                // can remain stale for the same deletion frame as panel.selectedEvent.
+                foreach (var current in GameCompat.GetEditorEvents(editor))
+                {
+                    if (ReferenceEquals(current, ev))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Treat uncertain state as not focused. A temporary hidden marker is safer than
+                // leaving a deleted event interactive in the viewport.
+            }
+
+            return false;
         }
 
         private static string ResolveKey(LevelEvent ev, string requestedKey)
@@ -574,8 +623,9 @@ namespace Euclid
             }
 
             var eventFloor = ev != null ? ev.floor : 0;
+            var relativeTo = GetTileRelativeTo(ev);
             var referenceFloor = eventFloor;
-            switch (GetTileRelativeTo(ev))
+            switch (relativeTo)
             {
                 case "Start":
                 case "FirstTile":
@@ -589,17 +639,12 @@ namespace Euclid
 
             var reference = GetFloorPosition(editor, referenceFloor);
 
-            // ADOFAI's editor transform for the event tile already contains this PositionTrack
-            // displacement. For the common ThisTile origin, using transform.position directly
-            // would therefore apply positionOffset twice:
-            //
-            //   displayed target = moved tile + positionOffset
-            //
-            // Recover the tile position before this PositionTrack event and use that as the
-            // origin instead. CoordinateTarget then computes both the visual target and future
-            // positionOffset writes from this same baseline. Start/End origins refer to a
-            // different floor, so they keep that floor's actual editor position.
-            if (referenceFloor == eventFloor)
+            // ADOFAI's editor transform for ThisTile already contains the focused PositionTrack
+            // displacement. Recover the position that this tile would have if this event did not
+            // exist, then use that exact origin both for the reference marker and for converting a
+            // dragged/snapped world point back into positionOffset. Start/End must not subtract
+            // the offset even when the event happens to live on the first/last floor.
+            if (string.Equals(relativeTo, "ThisTile", StringComparison.OrdinalIgnoreCase))
             {
                 reference -= offsetTiles * Mathf.Max(tileSize, 0.000001f);
             }
@@ -830,16 +875,16 @@ namespace Euclid
 
             internal static CoordinateTarget ForTileUnitEventProperty(LevelEvent ev, string key, Vector2 value, float tileSize)
             {
-                var scale = Mathf.Max(tileSize, 0.000001f);
+                var safeTileSize = tileSize <= 0.000001f ? 1f : tileSize;
                 return new CoordinateTarget(
                     default,
                     ev,
                     key,
-                    value * scale,
+                    value * safeTileSize,
                     camera: false,
-                    tileOffset: true,
+                    tileOffset: false,
                     referencePoint: Vector2.zero,
-                    tileSize: scale,
+                    tileSize: safeTileSize,
                     label: null);
             }
 
@@ -851,34 +896,36 @@ namespace Euclid
                 Vector2 offsetTiles,
                 string label)
             {
+                var safeTileSize = tileSize <= 0.000001f ? 1f : tileSize;
                 return new CoordinateTarget(
                     default,
                     ev,
                     key,
-                    referencePoint + offsetTiles * Mathf.Max(tileSize, 0.000001f),
+                    referencePoint + offsetTiles * safeTileSize,
                     camera: false,
                     tileOffset: true,
                     referencePoint: referencePoint,
-                    tileSize: tileSize,
+                    tileSize: safeTileSize,
                     label: label);
             }
 
-            internal bool TrySetWorldPoint(Vector2d value, bool saveUndoState)
+            internal bool TrySetWorldPoint(Vector2d world, bool saveUndoState)
             {
                 if (camera)
                 {
-                    return CameraFrameEditor.TryMoveCenter(cameraFrame, value.ToVector2(), saveUndoState);
+                    return CameraFrameEditor.TryMoveCenter(cameraFrame, world.ToVector2(), saveUndoState);
                 }
 
-                if (tileOffset)
+                if (ev == null || string.IsNullOrWhiteSpace(key))
                 {
-                    var offsetTiles = new Vector2(
-                        (float)((value.X - referencePoint.x) / tileSize),
-                        (float)((value.Y - referencePoint.y) / tileSize));
-                    return CameraFrameEditor.TrySetVectorProperty(ev, key, offsetTiles, saveUndoState);
+                    return false;
                 }
 
-                return CameraFrameEditor.TrySetVectorProperty(ev, key, value.ToVector2(), saveUndoState);
+                var worldPoint = world.ToVector2();
+                var value = tileOffset
+                    ? (worldPoint - referencePoint) / tileSize
+                    : worldPoint / tileSize;
+                return CameraFrameEditor.TrySetVectorProperty(ev, key, value, saveUndoState);
             }
         }
     }
