@@ -32,7 +32,8 @@ namespace Euclid
 
     // Remembers where an endpoint came from so the editor can show whether the
     // current coordinates were picked from a tile, picked from a drawn point,
-    // or entered manually. This metadata does not change the geometry itself.
+    // or entered manually. Tile provenance is informational only: selecting a tile
+    // snapshots its coordinates and later tile renumbering must not move the shape.
     internal enum ConstructionPointSourceKind
     {
         Manual,
@@ -424,8 +425,7 @@ namespace Euclid
                 return;
             }
 
-            // Freeze the currently displayed position before dropping provenance. For a tile
-            // source this captures the tile's latest world position instead of an older cached X/Y.
+            // Drop provenance while preserving the coordinate snapshot exactly as displayed.
             var point = GetPointForDisplay(shape, pointIndex);
             point.HasTile = false;
             point.Tile = 0;
@@ -567,16 +567,10 @@ namespace Euclid
                 return default;
             }
 
-            var point = GetPoint(shape, index);
-            if (!point.HasTile)
-            {
-                return point;
-            }
-
-            var coord = WorldToTileUnits(GetTileWorld(point.Tile));
-            point.X = coord.X;
-            point.Y = coord.Y;
-            return point;
+            // A tile pick is a coordinate snapshot, not a live reference to seqID.
+            // Keep the recorded Tile/SourceKind only for the UI source label. If tiles are
+            // inserted before it and seqIDs change, the construction endpoint stays put.
+            return GetPoint(shape, index);
         }
 
         internal static bool IsSelected(int id)
@@ -597,9 +591,9 @@ namespace Euclid
         private static Vector2d GetPointWorld(ConstructionShape shape, int index, bool useDrawn)
         {
             var point = useDrawn ? GetDrawnPoint(shape, index) : GetPoint(shape, index);
-            return point.HasTile
-                ? new Vector2d(GetTileWorld(point.Tile))
-                : TileUnitsToWorld(point.X, point.Y);
+            // Never resolve a picked tile again by seqID here. X/Y are the authoritative
+            // coordinates captured when the endpoint was selected.
+            return TileUnitsToWorld(point.X, point.Y);
         }
 
         private static ConstructionPointRef GetDrawnPoint(ConstructionShape shape, int index)
