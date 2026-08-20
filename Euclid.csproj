@@ -95,7 +95,10 @@
     <MakeDir Directories="$(UmmReleaseDir)" />
     <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(UmmReleaseDir)\Euclid.dll" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Info.json" DestinationFiles="$(UmmReleaseDir)\Info.json" />
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;if (Test-Path -LiteralPath '$(UmmReleaseZip)') { Remove-Item -LiteralPath '$(UmmReleaseZip)' -Force }; Compress-Archive -Path '$(UmmReleaseDir)' -DestinationPath '$(UmmReleaseZip)' -CompressionLevel Optimal&quot;" />
+    <!-- Keep Info.json at the ZIP root. UMM's in-place update path assumes a root-level ModInfo file;
+         packaging the Euclid directory itself can send UMM through its nested-folder rewrite path,
+         which is fragile for root entries and can throw Substring(startIndex = -1). -->
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;if (Test-Path -LiteralPath '$(UmmReleaseZip)') { Remove-Item -LiteralPath '$(UmmReleaseZip)' -Force }; Compress-Archive -Path '$(UmmReleaseDir)\*' -DestinationPath '$(UmmReleaseZip)' -CompressionLevel Optimal&quot;" />
     <Message Text="UMM release created: $(UmmReleaseZip)" Importance="high" />
   </Target>
 
