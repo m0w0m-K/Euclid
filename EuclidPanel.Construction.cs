@@ -300,11 +300,11 @@ namespace Euclid
                 // so P2 stays visible but disabled; this keeps the floating detail panel at a
                 // stable height when switching between point, line, and circle.
                 AddShapePointEditor(shape, 1, shape.Type != ConstructionShapeType.Point);
-                AddShapeGeometryInfo(shape);
 
-                // Keep color at the bottom of the shape editor. This avoids a separate popup
-                // obscuring the editor and keeps the editing flow P1 -> P2 -> color.
+                // Keep color editing together, then show derived geometry immediately below it.
+                // This makes a/b/theta or r read as information about the final styled shape.
                 AddShapeColorRow(shape);
+                AddShapeGeometryInfo(shape);
                 AddSpacer(4f);
             });
 

@@ -131,8 +131,11 @@ namespace Euclid
                     return false;
             }
 
-            var reference = GetPositionOffsetReferencePoint(scnEditor.instance, ev);
-            visual = new EffectOverlayVisual(kind, reference, target.WorldPoint, GetEffectDisplayName(ev));
+            // Use the exact same origin as the editable coordinate target. PositionTrack needs
+            // a pre-event origin rather than the already-repositioned floor transform; keeping
+            // both paths tied to CoordinateTarget prevents the marker and written offset from
+            // drifting apart.
+            visual = new EffectOverlayVisual(kind, target.ReferenceWorld, target.WorldPoint, GetEffectDisplayName(ev));
             return true;
         }
 
@@ -483,7 +486,7 @@ namespace Euclid
 
             var editor = scnEditor.instance;
             var tileSize = GetTileSize();
-            var referencePoint = GetPositionOffsetReferencePoint(editor, ev);
+            var referencePoint = GetPositionOffsetReferencePoint(editor, ev, offsetTiles, tileSize);
             target = CoordinateTarget.ForTileOffsetEventProperty(
                 ev,
                 "positionOffset",
@@ -559,27 +562,49 @@ namespace Euclid
             return ev != null && ev.eventType == LevelEventType.PositionTrack;
         }
 
-        private static Vector2 GetPositionOffsetReferencePoint(scnEditor editor, LevelEvent ev)
+        private static Vector2 GetPositionOffsetReferencePoint(
+            scnEditor editor,
+            LevelEvent ev,
+            Vector2 offsetTiles,
+            float tileSize)
         {
             if (!IsPositionTrack(ev))
             {
                 return GetFloorPosition(editor, ev != null ? ev.floor : 0);
             }
 
-            var floor = ev != null ? ev.floor : 0;
+            var eventFloor = ev != null ? ev.floor : 0;
+            var referenceFloor = eventFloor;
             switch (GetTileRelativeTo(ev))
             {
                 case "Start":
                 case "FirstTile":
-                    floor = 0;
+                    referenceFloor = 0;
                     break;
                 case "End":
                 case "LastTile":
-                    floor = GetLastFloorIndex(editor);
+                    referenceFloor = GetLastFloorIndex(editor);
                     break;
             }
 
-            return GetFloorPosition(editor, floor);
+            var reference = GetFloorPosition(editor, referenceFloor);
+
+            // ADOFAI's editor transform for the event tile already contains this PositionTrack
+            // displacement. For the common ThisTile origin, using transform.position directly
+            // would therefore apply positionOffset twice:
+            //
+            //   displayed target = moved tile + positionOffset
+            //
+            // Recover the tile position before this PositionTrack event and use that as the
+            // origin instead. CoordinateTarget then computes both the visual target and future
+            // positionOffset writes from this same baseline. Start/End origins refer to a
+            // different floor, so they keep that floor's actual editor position.
+            if (referenceFloor == eventFloor)
+            {
+                reference -= offsetTiles * Mathf.Max(tileSize, 0.000001f);
+            }
+
+            return reference;
         }
 
         private static string GetTileRelativeTo(LevelEvent ev)
@@ -758,6 +783,8 @@ namespace Euclid
             }
 
             internal Vector2 WorldPoint { get; }
+
+            internal Vector2 ReferenceWorld => referencePoint;
 
             internal Vector2d WorldPointD => new Vector2d(WorldPoint);
 
