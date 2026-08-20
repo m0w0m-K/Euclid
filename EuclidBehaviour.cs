@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Euclid
@@ -7,10 +8,24 @@ namespace Euclid
     // tile-selection sync), but feature state and UI construction belong in the tool/panel files.
     internal sealed class EuclidBehaviour : MonoBehaviour
     {
+        private static readonly string[] LevelPathMemberNames =
+        {
+            "levelPath",
+            "currentLevelPath",
+            "loadedLevelPath",
+            "filePath",
+            "filepath",
+            "filename",
+            "fileName",
+            "path",
+        };
+
         private float nextCaptureTime;
         private EuclidPanel internalPanel;
         private object editorLevelIdentity;
-        private bool hasEditorLevelIdentity;
+        private object editorSettingsPanelIdentity;
+        private string editorLevelPathKey;
+        private bool editorMapReady;
 
         internal MeasureSnapshot Snapshot { get; private set; } = MeasureSnapshot.Unavailable("Not captured yet.");
 
@@ -57,27 +72,109 @@ namespace Euclid
 
         private void DetectEditorMapChange()
         {
-            var identity = GameCompat.GetEditorLevelIdentity(scnEditor.instance);
-            if (identity == null)
+            var editor = scnEditor.instance;
+            var floors = GameCompat.GetFloors(editor);
+            var hasLevelData = editor != null &&
+                GameCompat.TryGetMember(editor, "levelData", out object levelData) &&
+                levelData != null;
+            var ready = editor != null && hasLevelData && floors.Count > 0;
+
+            // Opening another map passes through a teardown/reload boundary even on game builds
+            // that reuse the same scnEditor or LevelData instance. Treat that boundary itself as a
+            // map change instead of deliberately carrying Euclid's construction geometry across it.
+            if (!ready)
             {
-                // Keep the last non-null identity across the short teardown window between maps.
+                if (editorMapReady)
+                {
+                    ResetEditorMapLocalState();
+                }
+
+                editorMapReady = false;
+                editorLevelIdentity = null;
+                editorSettingsPanelIdentity = null;
+                editorLevelPathKey = null;
                 return;
             }
 
-            if (!hasEditorLevelIdentity)
+            var settingsPanel = GameCompat.GetSettingsPanel(editor);
+            var pathKey = ResolveLevelPathKey(editor, levelData);
+
+            if (!editorMapReady)
             {
-                editorLevelIdentity = identity;
-                hasEditorLevelIdentity = true;
+                editorMapReady = true;
+                editorLevelIdentity = levelData;
+                editorSettingsPanelIdentity = settingsPanel;
+                editorLevelPathKey = pathKey;
                 return;
             }
 
-            if (ReferenceEquals(editorLevelIdentity, identity))
+            var changed = false;
+            if (!string.IsNullOrWhiteSpace(pathKey) && !string.IsNullOrWhiteSpace(editorLevelPathKey))
             {
-                return;
+                changed = !string.Equals(pathKey, editorLevelPathKey, StringComparison.OrdinalIgnoreCase);
+            }
+            else if (!ReferenceEquals(editorLevelIdentity, levelData))
+            {
+                changed = true;
+            }
+            else if (editorSettingsPanelIdentity != null && settingsPanel != null &&
+                     !ReferenceEquals(editorSettingsPanelIdentity, settingsPanel))
+            {
+                // Some editor builds recreate their inspector hierarchy when a different map opens
+                // while retaining/reusing LevelData. This is a useful secondary map-boundary token.
+                changed = true;
             }
 
-            editorLevelIdentity = identity;
+            if (changed)
+            {
+                ResetEditorMapLocalState();
+            }
+
+            editorLevelIdentity = levelData;
+            editorSettingsPanelIdentity = settingsPanel;
+            if (!string.IsNullOrWhiteSpace(pathKey))
+            {
+                editorLevelPathKey = pathKey;
+            }
+        }
+
+        private void ResetEditorMapLocalState()
+        {
+            GuideLineTool.SnapSelectedShapeDrag = false;
             internalPanel?.HandleEditorMapChanged();
+            Snapshot = MeasureSnapshot.Unavailable("Map changed.");
+            CameraFrame = CameraFrameSnapshot.Unavailable("Map changed.");
+            nextCaptureTime = 0f;
+        }
+
+        private static string ResolveLevelPathKey(scnEditor editor, object levelData)
+        {
+            var fromEditor = TryGetPathLikeMember(editor);
+            if (!string.IsNullOrWhiteSpace(fromEditor))
+            {
+                return fromEditor;
+            }
+
+            return TryGetPathLikeMember(levelData);
+        }
+
+        private static string TryGetPathLikeMember(object target)
+        {
+            if (target == null)
+            {
+                return null;
+            }
+
+            for (var i = 0; i < LevelPathMemberNames.Length; i++)
+            {
+                if (GameCompat.TryGetMember(target, LevelPathMemberNames[i], out string value) &&
+                    !string.IsNullOrWhiteSpace(value))
+                {
+                    return value.Trim();
+                }
+            }
+
+            return null;
         }
 
         private void TryConsumeConstructionPointPick()
