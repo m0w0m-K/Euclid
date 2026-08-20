@@ -1,115 +1,36 @@
-# Euclid
+# 유클리드
 
-Standalone Unity Mod Manager mod for the A Dance of Fire and Ice editor.
+유클리드 모드는 불과 얼음의 춤 에디터에서 작도, 이펙트의 위치 오프셋 스냅, 거리, 각도 측정을 제공합니다.
 
-Current development target: ADOFAI 3.3.0 / Unity 6000.3.10f1 / .NET Framework 4.8.
+## 기능
 
-Euclid does not require EditorTabLib or the old Localizations dependency. It creates and manages its own editor tab, UI, localization resources, construction geometry, snapping, and overlays.
+### 유클리드 탭
+좌측 탭에서 Å 아이콘을 눌러 유클리드 탭을 열 수 있습니다.
 
-## Main features
+해당 탭에서 도형 목록을 볼 수 있으며 새로운 도형 추가와 삭제가 가능합니다.
 
-- editor-internal Euclid tab (`Å` icon)
-- construction shapes: point, infinite line, circle
-- P1/P2 picking from editor tiles and drawn construction points
-- per-shape color and visibility
-- guide-line and coordinate snapping helpers
-- Move Camera frame visualization and position dragging
-- focused effect markers for camera/track/free-roam related events
-- UMM options for overlay visibility and colors
-- built-in localization files for the languages currently supported by Euclid
+도형 목록에서 도형을 선택할 수 있으며 shift+클릭을 통해 여러 도형을 선택할 수 있습니다.
 
-## Project map
+도형 목록 오른쪽에 켜짐/꺼짐 버튼으로 도형을 보이게 하거나 안 보이게 할 수 있습니다.
 
-| File | Responsibility |
-| --- | --- |
-| `Startup.cs` | UMM entry point only |
-| `EuclidMod.cs` | UMM callbacks, persistent options, logging, bootstrap |
-| `EuclidBehaviour.cs` | per-frame runtime coordinator and input ordering |
-| `EuclidPanel.cs` | tab/panel lifecycle and detached detail panel |
-| `EuclidPanel.Construction.cs` | construction list, detail editor, point picking, inline RGBA/HEX editor |
-| `EuclidPanel.Interaction.cs` | synchronization with ADOFAI editor state |
-| `EuclidPanel.UiFactory.cs` | Unity UI creation and cloned native control styling |
-| `EuclidPanel.Style.cs` | captured ADOFAI visual styles and text formatting |
-| `ConstructionShapeTool.cs` | construction model and geometry |
-| `ConstructionShapeCanvasOverlay.cs` | shape/effect rendering below ADOFAI editor UI |
-| `GuideLineTool.cs` | guide geometry and state |
-| `CoordinateSnapTool.cs` | snapping geometry to editable ADOFAI properties |
-| `CameraFrameSnapshot.cs` | derives selected Move Camera state |
-| `CameraFrameEditor.cs` | writes camera/event values back to the editor |
-| `CameraFrameOverlay.cs` | camera-frame interaction and IMGUI hit handling |
-| `MeasureSnapshot.cs` | internal selected-tile geometry snapshot used by editor tools |
-| `TileSelectionOrderTracker.cs` | preserves editor tile click order |
-| `GameCompat.cs` | reflection-based ADOFAI editor compatibility boundary |
-| `LevelEventCompat.cs` | compatibility access to `LevelEvent` raw data |
-| `EuclidText.cs` | embedded localization loading/fallback |
-| `Localization/*.lang` | UTF-8 tab-separated localization resources |
+탭 아래엔 추가, 삭제, 교점 생성, 스냅 버튼이 있습니다.
 
-For a more general explanation intended for future ADOFAI mods, read `ADOFAI_MODDING_GUIDE.md`.
-For version-porting notes, read `PORTING-3.3.0.md`.
+- 추가: 새 도형을 만듭니다.
+- 삭제: 선택한 도형을 삭제합니다.
+- 교점 생성: 선택된 도형들의 교점을 점 도형으로 생성합니다.
+- 스냅: 현재 도형이 선택되어있고 카메라 이동, 길 이동, 길 위치, 장식 이동, 자유 이동 구간(DLC 전용) 중 한 이펙트가 선택되어있다면 해당 이펙트이 위치 오프셋을 선택된 도형에 스냅합니다.  
 
-## Build
+### 도형 정보 탭
+도형을 선택하면 화면 우측에 도형 정보탭이 나타납니다.
+- 이름: 도형의 이름을 정할 수 있습니다.
+- 종류: 점, 직선, 원 중에서 선택할 수 있습니다. 점은 P1만, 직선과 원은 P1, P2를 기준으로 도형을 생성합니다.
+- P1, P2: 선택 버튼을 누르고 점 도형이나 타일을 선택할 수 있습니다. 혹은 좌표값을 직접 입력 가능합니다. 직선은 P1과 P2를 지나는 직선을 생성하고 원은 P1이 중심이고 P2를 지나는 원을 생성합니다. 
+- 색상: RGBA 값으로 설정할 수 있습니다.
+- 도형 수치: 직선에선 a(직선의 기울기), b(y절편), θ(각도)가 표시되며 원에선 r(반지름)이 표시됩니다.
 
-The project resolves game references from the installed ADOFAI directory. Default location:
+### 이펙트 위치 표시
+선택한 이펙트의 카메라 이동, 길 이동, 길 위치, 장식 이동, 자유 이동 구간(DLC 전용)이 적용된 위치와 위치 오프셋을 마크로 나타내며 그 사이를 직선으로 잇습니다.
 
-```text
-C:\Program Files (x86)\Steam\steamapps\common\A Dance of Fire and Ice
-```
+카메라 이동의 경우 위치, 회전, 확대를 고려하여 어디까지 카메라에 보이는지 프레임으로 표시합니다.
 
-Command-line build:
-
-```bat
-dotnet build Euclid.csproj -c Release "-p:GameDir=C:\Program Files (x86)\Steam\steamapps\common\A Dance of Fire and Ice"
-```
-
-Or double-click `BUILD_RELEASE.cmd`. An alternate game directory can be passed as the first argument.
-
-A successful Windows Release build creates:
-
-```text
-dist/
-└─ Euclid/
-   ├─ Euclid.dll
-   └─ Info.json
-
-dist/Euclid-0.7.62.zip
-```
-
-`dist/Euclid-0.7.62.zip` is the UMM installer package. Development no longer requires a script that directly overwrites the installed mod directory.
-
-## Static project check
-
-Before a release, run:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\check_project.ps1
-```
-
-The check verifies the UMM metadata, source/project version agreement, standalone dependency policy, localization key parity, current `Å` tab icon, and absence of old branding/dead bridge files.
-
-## Important maintenance rules
-
-1. Treat `Assembly-CSharp.dll` as a version-specific implementation detail, not a stable public API.
-2. Put reflection and renamed/private editor-member handling in `GameCompat.cs` or `LevelEventCompat.cs` instead of scattering it through feature code.
-3. Keep geometry/state separate from rendering and editor mutation. This is why Euclid has `ConstructionShapeTool`, `ConstructionShapeCanvasOverlay`, and `CoordinateSnapTool` as separate layers.
-4. When changing an editor event, preserve undo/dirty/inspector refresh behavior. See `CameraFrameEditor.cs` for the sequence used by Euclid.
-5. Do not copy game/Unity reference DLLs into the release archive. The project references them with `<Private>false>`.
-6. When ADOFAI updates, compile against the new installed `Managed` directory first. Compiler errors and runtime reflection failures are the first compatibility checklist.
-
-## Refactor note: 0.7.61
-
-The source cleanup removed old paths that were no longer part of the live UI:
-
-- removed the unused ADOFAI native `ColorField` reflection bridge
-- removed legacy IMGUI-only snapshot/camera text helpers
-- removed the old floating shape color-picker implementation and unused HEX fallback path; the current inline RGBA/HEX editor remains
-- removed the unused legacy `GuideLineTool.DrawGui` path
-- replaced the stale UI regression script with a project-level sanity check
-- changed the development helper from direct build-and-install to release-package generation
-- rewrote the documentation around the current standalone architecture
-
-## UI/geometry note: 0.7.62
-
-- reduced the vertical size of the inline RGBA slider handles
-- extended construction-line rendering so lines remain visually continuous farther from P1
-- Shape Info now shows `a`, `b`, and `θ` for lines and `r` for circles
-- vertical lines display an undefined intercept instead of forcing a finite slope/intercept
+이펙트의 타일 위치 마크, 위치 좌표 마크, 선분 마크, 이펙트 이름 등은 유니티 모드 매니저의 옵션창(ctrl+f10)에서 설정 가능합니다.
