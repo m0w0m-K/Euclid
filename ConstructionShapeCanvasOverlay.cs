@@ -401,6 +401,34 @@ namespace Euclid
                 return true;
             }
 
+            // ADOFAI can leave levelEventsPanel.selectedEvent pointing at a deleted event until
+            // the inspector refreshes. Do not render an effect marker unless that exact event is
+            // still present in the editor's authoritative event collection.
+            var editor = scnEditor.instance;
+            var panel = GameCompat.GetLevelEventsPanel(editor);
+            var selectedEvent = GameCompat.GetSelectedEvent(panel);
+            if (editor == null || selectedEvent == null)
+            {
+                visual = default;
+                return false;
+            }
+
+            var eventStillExists = false;
+            foreach (var currentEvent in GameCompat.GetEditorEvents(editor))
+            {
+                if (object.ReferenceEquals(currentEvent, selectedEvent))
+                {
+                    eventStillExists = true;
+                    break;
+                }
+            }
+
+            if (!eventStillExists)
+            {
+                visual = default;
+                return false;
+            }
+
             return CoordinateSnapTool.TryGetFocusedEffectVisual(out visual);
         }
 
@@ -427,13 +455,26 @@ namespace Euclid
                 TryWorldToLocal(camera, from, out var fromLocal) &&
                 TryWorldToLocal(camera, to, out var toLocal))
             {
-                var previewColor = colors.Segment;
-                previewColor.a *= 0.72f;
-                AddDashedLine(vh, fromLocal, toLocal, previewColor, 1.65f, 9f, 6f);
+                // The selected-shape snap preview can resolve exactly to the effect reference
+                // point. In that case it is the same segment as reference -> target, only reversed,
+                // which used to draw a dashed line directly on top of the normal solid segment.
+                // Suppress the redundant preview (and its extra diamond) but keep previews whose
+                // snap destination is genuinely different.
+                const float overlapToleranceSqr = 2.25f;
+                var duplicatesEffectSegment =
+                    (fromLocal - target).sqrMagnitude <= overlapToleranceSqr &&
+                    (toLocal - reference).sqrMagnitude <= overlapToleranceSqr;
 
-                var snapColor = colors.PositionMarker;
-                snapColor.a = Mathf.Clamp01(snapColor.a);
-                AddDiamond(vh, toLocal, snapColor, 8f, 1.8f);
+                if (!duplicatesEffectSegment && (toLocal - fromLocal).sqrMagnitude > overlapToleranceSqr)
+                {
+                    var previewColor = colors.Segment;
+                    previewColor.a *= 0.72f;
+                    AddDashedLine(vh, fromLocal, toLocal, previewColor, 1.65f, 9f, 6f);
+
+                    var snapColor = colors.PositionMarker;
+                    snapColor.a = Mathf.Clamp01(snapColor.a);
+                    AddDiamond(vh, toLocal, snapColor, 8f, 1.8f);
+                }
             }
         }
 
