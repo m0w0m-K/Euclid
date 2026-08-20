@@ -1,8 +1,13 @@
 {
   "Id": "Euclid",
   "DisplayName": "Euclid",
+<<<<<<< Updated upstream
   "Author": "akzp1 + Codex",
   "Version": "0.7.63",
+=======
+  "Author": "-K",
+  "Version": "0.7.62",
+>>>>>>> Stashed changes
   "ManagerVersion": "0.22.14.0",
   "AssemblyName": "Euclid.dll",
   "EntryMethod": "Euclid.Startup.Load"
