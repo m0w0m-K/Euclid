@@ -49,6 +49,15 @@ namespace Euclid
                 return;
             }
 
+            // A PositionTrack snap now commits through the real inspector input on the next frame.
+            // Do not calculate another shape snap against the still-old floor transform while that
+            // host commit is pending. Keep lastSelectedShape unchanged so a selection made during
+            // this short window is processed immediately after the actual tile position catches up.
+            if (PositionTrackSnapCommitSync.IsPending)
+            {
+                return;
+            }
+
             if (selectedShape == null || ReferenceEquals(selectedShape, lastSelectedShape))
             {
                 lastSelectedShape = selectedShape;
