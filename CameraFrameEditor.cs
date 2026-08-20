@@ -45,9 +45,19 @@ namespace Euclid
                 }
 
                 ev.disabled[key] = false;
-                GameCompat.TryApplyPropertiesToRealEvents(ev);
+
+                // PositionTrack can rebuild every following floor when its offset is applied. While
+                // Euclid's position marker is being dragged, keep only the raw editor value live so
+                // the marker previews smoothly; PositionTrackFocusSync commits the real event once
+                // when the mouse is released.
+                var deferRealApply = PositionTrackFocusSync.ShouldDeferMarkerDragApply(ev, key);
+                if (!deferRealApply)
+                {
+                    GameCompat.TryApplyPropertiesToRealEvents(ev);
+                }
+
                 MarkUnsaved(editor);
-                RefreshInspectorProperty(editor, ev, key, refreshPanel: saveUndoState);
+                RefreshInspectorProperty(editor, ev, key, refreshPanel: saveUndoState && !deferRealApply);
                 return true;
             }
             catch (Exception ex)
