@@ -41,6 +41,15 @@ namespace Euclid
             UpdatePointBindings();
             EnsurePointPinButtons();
             RefreshPointBindingButtons();
+
+            // PIN is the only endpoint control created dynamically after the detail hierarchy is
+            // built. Finalize PIN/P2/slider geometry and interactable colors in this same LateUpdate,
+            // before Unity's render/layout pass, so no intermediate size or enabled tint is visible.
+            var selectedShape = ConstructionShapeTool.PrimarySelectedShape;
+            if (selectedShape != null)
+            {
+                NormalizeDetailControlState(selectedShape);
+            }
         }
 
         private void UpdatePointBindings()
@@ -231,8 +240,6 @@ namespace Euclid
                 return;
             }
 
-            // The Pick button in AddShapePointEditor is created at 64 px. Create Pin at the
-            // same final size immediately instead of starting at 52 px and correcting it later.
             pinText = AddButton(
                 row,
                 PointPinLabel(),
@@ -243,6 +250,10 @@ namespace Euclid
             if (pinText != null && pinText.transform.parent != null)
             {
                 pinText.transform.parent.SetSiblingIndex(pickButtonTransform.GetSiblingIndex() + 1);
+                // Do not wait for a later frame to copy Pick's measured size. Both endpoint action
+                // buttons are fixed 64 px controls by definition, so give PIN that final geometry at
+                // creation time and let the row lay out from stable constraints.
+                NormalizePointButtonLayout(pinText);
             }
         }
 
@@ -623,6 +634,13 @@ namespace Euclid
             {
                 pointBindings.Remove(PointBindingKey(shape, pointIndex));
             }
+        }
+
+        private void ClearPointBindings()
+        {
+            pointBindings.Clear();
+            shapeFirstPinText = null;
+            shapeSecondPinText = null;
         }
 
         private static bool HasBindableSource(ConstructionPointRef point)
