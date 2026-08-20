@@ -101,8 +101,8 @@ namespace Euclid
                 return;
             }
 
-            // An unfinished value such as "", "-", NaN, or Infinity must not remain in the
-            // inspector after focus leaves the field. Commit a real coordinate value of 0.
+            // An unfinished value such as "", "-", NaN, Infinity, or arbitrary text must not
+            // remain in the inspector after focus leaves the field. Commit a real value of 0.
             if (!xValid)
             {
                 x = 0d;
@@ -204,10 +204,23 @@ namespace Euclid
                     continue;
                 }
 
-                var size = slider.handleRect.sizeDelta;
+                var handle = slider.handleRect;
+
+                // Unity's Slider drives the horizontal anchor for the current value. Preserve that
+                // X anchor but collapse the Y anchors to the center so the handle cannot stretch to
+                // the row height. sizeDelta.y then becomes the actual on-screen handle height.
+                var anchorMin = handle.anchorMin;
+                var anchorMax = handle.anchorMax;
+                anchorMin.y = 0.5f;
+                anchorMax.y = 0.5f;
+                handle.anchorMin = anchorMin;
+                handle.anchorMax = anchorMax;
+                handle.pivot = new Vector2(handle.pivot.x, 0.5f);
+
+                var size = handle.sizeDelta;
                 if (Mathf.Abs(size.y - 6f) > 0.01f)
                 {
-                    slider.handleRect.sizeDelta = new Vector2(size.x, 6f);
+                    handle.sizeDelta = new Vector2(size.x, 6f);
                 }
             }
         }
