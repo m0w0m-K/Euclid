@@ -11,9 +11,9 @@ namespace Euclid
     {
         private readonly HashSet<int> endpointValidationHooks = new HashSet<int>();
 
-        // Small UI/state fixes that depend on controls created by the construction detail panel.
-        // Keep these here instead of making the large construction builder responsible for
-        // per-frame housekeeping.
+        // Endpoint text validation belongs to Update because the detail hierarchy can be rebuilt by
+        // a button click at any time. Final layout/interactable normalization is done from the
+        // PointBinding LateUpdate after dynamic PIN buttons have also been created.
         private void Update()
         {
             if (!EuclidMod.Enabled)
@@ -22,22 +22,16 @@ namespace Euclid
             }
 
             var shape = ConstructionShapeTool.PrimarySelectedShape;
-            if (shape != null)
+            if (shape == null)
             {
-                EnsureEndpointValidation(shape, 0, shapeFirstX, shapeFirstY, shapeFirstPickText, shapeFirstSourceText);
-                if (shape.Type != ConstructionShapeType.Point)
-                {
-                    EnsureEndpointValidation(shape, 1, shapeSecondX, shapeSecondY, shapeSecondPickText, shapeSecondSourceText);
-                }
-
-                MatchPointButtonSize(shapeFirstPickText, shapeFirstPinText);
-                if (shape.Type != ConstructionShapeType.Point)
-                {
-                    MatchPointButtonSize(shapeSecondPickText, shapeSecondPinText);
-                }
+                return;
             }
 
-            CompactShapeColorHandles();
+            EnsureEndpointValidation(shape, 0, shapeFirstX, shapeFirstY, shapeFirstPickText, shapeFirstSourceText);
+            if (shape.Type != ConstructionShapeType.Point)
+            {
+                EnsureEndpointValidation(shape, 1, shapeSecondX, shapeSecondY, shapeSecondPickText, shapeSecondSourceText);
+            }
         }
 
         private void EnsureEndpointValidation(
@@ -164,51 +158,124 @@ namespace Euclid
             return !double.IsNaN(value) && !double.IsInfinity(value);
         }
 
-        private static void MatchPointButtonSize(TMP_Text pickText, TMP_Text pinText)
+        // Called at the end of EuclidPanel.LateUpdate, after any dynamic PIN button has been added.
+        // Give every control its final geometry and interaction state before Unity renders the frame.
+        // This replaces the old "copy whatever size Pick currently has" and separate layout
+        // stabilizer, both of which exposed intermediate states for one or more frames.
+        private void NormalizeDetailControlState(ConstructionShape shape)
         {
-            if (pickText == null || pinText == null ||
-                pickText.transform == null || pinText.transform == null ||
-                pickText.transform.parent == null || pinText.transform.parent == null)
+            if (shape == null || detailContent == null)
             {
                 return;
             }
 
-            var pickLayout = pickText.transform.parent.GetComponent<LayoutElement>();
-            var pinLayout = pinText.transform.parent.GetComponent<LayoutElement>();
-            if (pickLayout == null || pinLayout == null)
-            {
-                return;
-            }
+            NormalizePointButtonLayout(shapeFirstPickText);
+            NormalizePointButtonLayout(shapeFirstPinText);
+            NormalizePointButtonLayout(shapeSecondPickText);
+            NormalizePointButtonLayout(shapeSecondPinText);
 
-            pinLayout.minWidth = pickLayout.minWidth;
-            pinLayout.preferredWidth = pickLayout.preferredWidth;
-            pinLayout.flexibleWidth = pickLayout.flexibleWidth;
-            pinLayout.minHeight = pickLayout.minHeight;
-            pinLayout.preferredHeight = pickLayout.preferredHeight;
-            pinLayout.flexibleHeight = pickLayout.flexibleHeight;
+            var secondEnabled = shape.Type != ConstructionShapeType.Point;
+            SetInputInteractableImmediate(shapeSecondX, secondEnabled);
+            SetInputInteractableImmediate(shapeSecondY, secondEnabled);
+
+            NormalizeShapeColorControls();
         }
 
-        private void CompactShapeColorHandles()
+        private void NormalizePointButtonLayout(TMP_Text text)
         {
-            if (detailContent == null)
+            if (text == null || text.transform == null || text.transform.parent == null)
             {
                 return;
             }
 
+            const float width = 64f;
+            var height = CurrentButtonHeight;
+            var root = text.transform.parent as RectTransform;
+            var layout = text.transform.parent.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                layout.minWidth = width;
+                layout.preferredWidth = width;
+                layout.flexibleWidth = 0f;
+                layout.minHeight = height;
+                layout.preferredHeight = height;
+                layout.flexibleHeight = 0f;
+            }
+
+            // A newly-created GameObject starts at Unity's default RectTransform size until the next
+            // layout pass. Setting the fixed size immediately prevents PIN from appearing oversized
+            // for the frame in which it is inserted into the endpoint row.
+            if (root != null)
+            {
+                root.sizeDelta = new Vector2(width, height);
+            }
+        }
+
+        private static void SetInputInteractableImmediate(TMP_InputField input, bool enabled)
+        {
+            if (input == null)
+            {
+                return;
+            }
+
+            var colors = input.colors;
+            if (colors.fadeDuration != 0f)
+            {
+                colors.fadeDuration = 0f;
+                input.colors = colors;
+            }
+
+            if (input.interactable != enabled)
+            {
+                input.interactable = enabled;
+            }
+
+            // TMP_InputField cloned from ADOFAI can already be part-way through its original color
+            // fade when the Point UI is rebuilt. Snap the disabled P2 fields to their final tint so
+            // they never flash as enabled first.
+            if (!enabled && input.targetGraphic != null)
+            {
+                input.targetGraphic.CrossFadeColor(colors.disabledColor, 0f, true, true);
+            }
+        }
+
+        private void NormalizeShapeColorControls()
+        {
             var sliders = detailContent.GetComponentsInChildren<Slider>(true);
             for (var i = 0; i < sliders.Length; i++)
             {
                 var slider = sliders[i];
-                if (slider == null || slider.handleRect == null)
+                if (slider == null)
                 {
                     continue;
                 }
 
-                var handle = slider.handleRect;
+                var rowLayout = slider.transform.parent != null
+                    ? slider.transform.parent.GetComponent<HorizontalLayoutGroup>()
+                    : null;
+                if (rowLayout != null)
+                {
+                    rowLayout.childControlHeight = true;
+                    rowLayout.childForceExpandHeight = false;
+                }
 
-                // Unity's Slider drives the horizontal anchor for the current value. Preserve that
-                // X anchor but collapse the Y anchors to the center so the handle cannot stretch to
-                // the row height. sizeDelta.y then becomes the actual on-screen handle height.
+                var sliderLayout = slider.GetComponent<LayoutElement>();
+                if (sliderLayout != null)
+                {
+                    sliderLayout.minHeight = 20f;
+                    sliderLayout.preferredHeight = 20f;
+                    sliderLayout.flexibleHeight = 0f;
+                }
+
+                var handle = slider.handleRect;
+                if (handle == null)
+                {
+                    continue;
+                }
+
+                // Slider owns the X anchors. Only lock Y to the center and set the intended thumb
+                // dimensions. The slightly taller 12 px handle is the final size, not a correction
+                // applied by a separate component one frame later.
                 var anchorMin = handle.anchorMin;
                 var anchorMax = handle.anchorMax;
                 anchorMin.y = 0.5f;
@@ -216,12 +283,7 @@ namespace Euclid
                 handle.anchorMin = anchorMin;
                 handle.anchorMax = anchorMax;
                 handle.pivot = new Vector2(handle.pivot.x, 0.5f);
-
-                var size = handle.sizeDelta;
-                if (Mathf.Abs(size.y - 6f) > 0.01f)
-                {
-                    handle.sizeDelta = new Vector2(size.x, 6f);
-                }
+                handle.sizeDelta = new Vector2(10f, 12f);
             }
         }
     }
