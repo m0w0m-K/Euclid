@@ -18,6 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>$(ManagedAssembliesDir)\UnityModManager\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>$(ManagedAssembliesDir)\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
