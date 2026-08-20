@@ -121,6 +121,15 @@
 
 `positionOffset` 항목이 꺼져 있으면 저장된 원시 오프셋 값은 유지되지만 화면 표시에서는 실효 오프셋을 0으로 취급합니다. 따라서 타일 위치 마크와 위치 좌표 마크가 복원된 타일 위치에 함께 표시됩니다.
 
+## 자유 이동 구간
+
+자유 이동 구간의 `positionOffset`도 해당 이펙트가 놓인 타일의 표시 위치에 직접 적용됩니다. 따라서 길 위치의 `relativeTo = ThisTile`과 같은 방식으로 표시합니다.
+
+- 타일 위치 마크: 자유 이동 구간의 위치 오프셋이 적용되기 전 타일 위치
+- 위치 좌표 마크: 위치 오프셋이 적용된 후 실제로 표시되는 타일 위치
+
+`positionOffset` 항목이 꺼져 있으면 실효 오프셋을 0으로 취급하므로 두 마크가 복원된 타일 위치에 함께 표시됩니다.
+
 ## 모든 이펙트 마크 표시
 
 유니티 모드 매니저의 옵션에서 `모든 이펙트 마크 표시`를 켜면 현재 선택한 이펙트뿐 아니라 맵에 있는 지원 이펙트의 위치 마크를 함께 볼 수 있습니다.
@@ -276,6 +285,15 @@ Even if the zoom or rotation property is disabled on the current effect, moving 
 - Position coordinate marker: the final position after the current Position Track effect is applied
 
 When `positionOffset` is disabled, the stored raw offset value is preserved, but the visualization treats the effective offset as zero. The tile position marker and position coordinate marker therefore appear together at the restored tile position.
+
+## Free Roam Section
+
+A Free Roam section's `positionOffset` is also applied directly to the displayed position of the tile that owns the effect. Euclid therefore treats it like Position Track with `relativeTo = ThisTile` for marker purposes.
+
+- Tile position marker: the tile position before the Free Roam position offset is applied
+- Position coordinate marker: the displayed tile position after the offset is applied
+
+When `positionOffset` is disabled, its effective value is treated as zero, so both markers appear together at the restored tile position.
 
 ## Show All Effect Markers
 
