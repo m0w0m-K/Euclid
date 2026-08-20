@@ -29,10 +29,24 @@ namespace Euclid
                     return false;
                 }
 
-                // Only used by the manual fallback. The preferred PositionTrack snap path below
-                // commits through ADOFAI's real input-focus lifecycle and lets PositionTrackFocusSync
-                // derive its own applied baseline from the actual floor movement.
+                var isPositionTrackOffset = ev.eventType == LevelEventType.PositionTrack &&
+                    string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase);
+
+                // A previous snap can still be waiting for ADOFAI's end-edit/floor rebuild. Starting
+                // another programmatic snap against that old floor is what produced occasional
+                // opposite-direction reference jumps. Marker dragging is allowed to continue the same
+                // focused edit and is handled separately by PositionTrackMarkerDragFocus.
+                if (isPositionTrackOffset && PositionTrackSnapCommitSync.BlocksProgrammaticEdit)
+                {
+                    return false;
+                }
+
+                // Compatibility fallback only. The preferred snap path focuses the real inspector
+                // BEFORE changing raw positionOffset, so PositionTrackFocusSync can capture the old
+                // applied floor/offset exactly like it does during marker dragging.
                 var positionTrackBaseline = PositionTrackAppliedSync.CaptureBeforeEdit(ev, key);
+                var commitThroughInspectorFocus = isPositionTrackOffset &&
+                    PositionTrackSnapCommitSync.TryBeginImmediateCommit(ev, key);
 
                 if (saveUndoState)
                 {
@@ -41,6 +55,10 @@ namespace Euclid
 
                 if (!LevelEventCompat.SetRaw(ev, key, value))
                 {
+                    if (commitThroughInspectorFocus)
+                    {
+                        PositionTrackSnapCommitSync.CancelImmediateCommit();
+                    }
                     return false;
                 }
 
@@ -51,39 +69,48 @@ namespace Euclid
 
                 ev.disabled[key] = false;
 
-                // PositionTrack can rebuild every following floor when its offset is applied.
-                // During a scene-marker drag the real inspector input stays focused, so only the raw
-                // value should change. Releasing the marker commits once through ADOFAI's end-edit.
+                // Scene-marker dragging already owns/focuses the same inspector input. While it is
+                // active, keep only raw data live and let MouseUp release the field once.
                 var deferRealApply = PositionTrackMarkerDragFocus.ShouldDeferApply(ev, key);
-                var commitThroughInspectorFocus = false;
 
-                if (!deferRealApply &&
-                    ev.eventType == LevelEventType.PositionTrack &&
-                    string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase))
+                if (commitThroughInspectorFocus)
                 {
-                    // A programmatic snap used to call ApplyPropertiesToRealEvents directly. That
-                    // updates the event but can miss the host editor's complete PositionTrack floor
-                    // rebuild. Put the new value into the real inspector control, focus it for one
-                    // frame, then let PositionTrackSnapCommitSync release it normally.
+                    // This ordering is intentional: focus old value -> SetRaw(new) -> update visible
+                    // inspector text while still focused -> hold one frame -> end edit. Focusing after
+                    // SetRaw made the input start with the new value and ADOFAI had nothing to commit.
+                    var textSynced = false;
                     try
                     {
-                        GameCompat.TryUpdatePropertyText(editor, ev, key);
+                        textSynced = GameCompat.TryUpdatePropertyText(editor, ev, key);
                     }
                     catch (Exception)
                     {
-                        // If the inspector text cannot be synchronized, fall back below.
+                        textSynced = false;
                     }
 
-                    commitThroughInspectorFocus = PositionTrackSnapCommitSync.TryScheduleImmediateCommit(ev, key);
+                    if (textSynced)
+                    {
+                        PositionTrackSnapCommitSync.ArmImmediateCommit();
+                        MarkUnsaved(editor);
+                        return true;
+                    }
+
+                    // Resolver succeeded but the inspector row could not be refreshed. Releasing the
+                    // old field can restore its old text/value, so re-write the requested raw value
+                    // before taking the compatibility direct-apply path below.
+                    PositionTrackSnapCommitSync.CancelImmediateCommit();
+                    if (!LevelEventCompat.SetRaw(ev, key, value))
+                    {
+                        return false;
+                    }
+                    ev.disabled[key] = false;
                 }
 
-                if (!deferRealApply && !commitThroughInspectorFocus)
+                if (!deferRealApply)
                 {
                     var applied = GameCompat.TryApplyPropertiesToRealEvents(ev);
-                    if (applied)
+                    if (applied && isPositionTrackOffset)
                     {
-                        // Compatibility fallback for builds where the real positionOffset input could
-                        // not be resolved. Normal snaps should not use this path anymore.
                         PositionTrackAppliedSync.NotifyImmediateApply(
                             ev,
                             key,
@@ -93,20 +120,12 @@ namespace Euclid
                 }
 
                 MarkUnsaved(editor);
-
-                if (commitThroughInspectorFocus)
-                {
-                    // Refreshing the whole event panel here would destroy/recreate the exact input
-                    // that now owns focus. Its text was already synchronized above; ADOFAI will
-                    // refresh the panel itself when end-edit commits on the next frame.
-                    return true;
-                }
-
                 RefreshInspectorProperty(editor, ev, key, refreshPanel: saveUndoState && !deferRealApply);
                 return true;
             }
             catch (Exception ex)
             {
+                PositionTrackSnapCommitSync.CancelImmediateCommit();
                 EuclidMod.Logger?.Error(ex.ToString());
                 return false;
             }
