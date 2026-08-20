@@ -12,12 +12,12 @@ namespace Euclid
 {
     // Bridges Euclid's scene-marker drag to ADOFAI's normal inspector commit path.
     //
-    // PositionTrack is expensive because applying positionOffset can rebuild every following floor.
-    // ADOFAI already avoids that while its coordinate input is focused and applies the value when
-    // the field loses focus. During a Euclid marker drag we therefore give the real positionOffset
-    // input field focus, keep only the raw value live, and release that exact field on mouse-up.
-    // The existing PositionTrackFocusSync then observes the same focus/apply transition as a normal
-    // inspector edit and keeps the reference/target markers coherent.
+    // PositionTrack and FreeRoam both move an editor floor through positionOffset. Re-applying the
+    // host floor state on every mouse-move is unnecessarily expensive and can make the marker/floor
+    // fight each other while dragging. ADOFAI already defers these edits while the real coordinate
+    // input is focused and commits when the field loses focus, so Euclid mirrors that lifecycle:
+    // focus the real positionOffset input, keep only the raw value live during the drag, then release
+    // that exact field on mouse-up so the host applies the floor once.
     internal sealed class PositionTrackMarkerDragFocus : MonoBehaviour
     {
         private static readonly FieldInfo PositionOffsetDraggingField = typeof(CameraFrameOverlay).GetField(
@@ -41,7 +41,7 @@ namespace Euclid
 
         internal static bool ShouldDeferApply(LevelEvent ev, string key)
         {
-            if (ev == null || ev.eventType != LevelEventType.PositionTrack ||
+            if (!UsesDeferredFloorPositionOffset(ev) ||
                 !string.Equals(key, "positionOffset", StringComparison.OrdinalIgnoreCase) ||
                 !IsMarkerDragging())
             {
@@ -55,8 +55,8 @@ namespace Euclid
                 TryFocusPositionOffsetInput(scnEditor.instance, ev);
             }
 
-            // If the real inspector field cannot be found, fall back to the old immediate-apply
-            // behavior rather than leaving the map in an uncommitted state.
+            // If the real inspector field cannot be found, fall back to immediate apply rather than
+            // leaving the level in an uncommitted state.
             return focusEstablished && HasOwnedFocus();
         }
 
@@ -76,7 +76,7 @@ namespace Euclid
 
             if (dragging)
             {
-                if (ev != null && ev.eventType == LevelEventType.PositionTrack && !HasOwnedFocus())
+                if (UsesDeferredFloorPositionOffset(ev) && !HasOwnedFocus())
                 {
                     TryFocusPositionOffsetInput(editor, ev);
                 }
@@ -105,7 +105,7 @@ namespace Euclid
 
         private static bool TryFocusPositionOffsetInput(scnEditor editor, LevelEvent ev)
         {
-            if (editor == null || ev == null || ev.eventType != LevelEventType.PositionTrack)
+            if (editor == null || !UsesDeferredFloorPositionOffset(ev))
             {
                 return false;
             }
@@ -170,7 +170,8 @@ namespace Euclid
             {
                 focusEstablished = false;
                 ownedInput = null;
-                EuclidMod.Logger?.Log("PositionTrack marker drag: could not resolve the positionOffset input field; using immediate apply.");
+                EuclidMod.Logger?.Log(
+                    $"{ev.eventType} marker drag: could not resolve the positionOffset input field; using immediate apply.");
                 return false;
             }
 
@@ -343,7 +344,7 @@ namespace Euclid
             }
             catch (Exception ex)
             {
-                EuclidMod.Logger?.Log("PositionTrack marker drag focus failed: " + ex.Message);
+                EuclidMod.Logger?.Log("positionOffset marker drag focus failed: " + ex.Message);
             }
 
             return false;
@@ -392,7 +393,7 @@ namespace Euclid
             }
             catch (Exception ex)
             {
-                EuclidMod.Logger?.Log("PositionTrack marker drag release failed: " + ex.Message);
+                EuclidMod.Logger?.Log("positionOffset marker drag release failed: " + ex.Message);
             }
             finally
             {
@@ -416,6 +417,21 @@ namespace Euclid
             {
                 return false;
             }
+        }
+
+        private static bool UsesDeferredFloorPositionOffset(LevelEvent ev)
+        {
+            if (ev == null)
+            {
+                return false;
+            }
+
+            if (ev.eventType == LevelEventType.PositionTrack)
+            {
+                return true;
+            }
+
+            return string.Equals(ev.eventType.ToString(), "FreeRoam", StringComparison.Ordinal);
         }
 
         private static bool TryGetPositionOffset(LevelEvent ev, out Vector2 value)
