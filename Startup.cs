@@ -8,6 +8,7 @@ namespace Euclid
         {
             EuclidMod.Load(modEntry);
             PositionTrackFocusSync.Install();
+            AllEffectMarkerOverlay.Install();
         }
     }
 }
