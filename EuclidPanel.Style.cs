@@ -123,7 +123,10 @@ namespace Euclid
                 buttonColors.pressedColor = Color.white;
                 buttonColors.selectedColor = Color.white;
                 buttonColors.disabledColor = new Color(0.45f, 0.45f, 0.45f, 1f);
-                buttonColors.fadeDuration = 0.08f;
+                // Euclid rebuilds compact shape controls in-place. A color-tint transition exposes
+                // the newly-created enabled state for a few frames before disabled/selected state
+                // settles, which looks like a flicker. State changes here are semantic, not animated.
+                buttonColors.fadeDuration = 0f;
 
                 return new UiStyle(font, fontMaterial, buttonTemplate, inputTemplate, buttonImage, inputStyle, toggleOnStyle, toggleOffStyle, buttonColors);
             }
