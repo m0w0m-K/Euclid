@@ -59,6 +59,26 @@ namespace Euclid
             }
         }
 
+        // ADOFAI stores the per-property on/off switch in LevelEvent.disabled. Missing entries are
+        // enabled by default. Keep this interpretation in one compatibility helper so marker,
+        // snapping, and read-only overlay code all agree on the effective value of a property.
+        internal static bool IsPropertyEnabled(LevelEvent ev, string key)
+        {
+            if (ev == null || string.IsNullOrWhiteSpace(key) || ev.disabled == null)
+            {
+                return true;
+            }
+
+            try
+            {
+                return !ev.disabled.TryGetValue(key, out var disabled) || !disabled;
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+        }
+
         internal static IEnumerable<KeyValuePair<string, object>> EnumerateRaw(LevelEvent ev)
         {
             if (TryGetData(ev, out var data))
