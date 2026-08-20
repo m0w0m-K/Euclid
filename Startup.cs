@@ -12,6 +12,7 @@ namespace Euclid
             PositionTrackMarkerDragFocus.Install();
             PositionTrackSnapCommitSync.Install();
             SelectedShapeSnapSync.Install();
+            CameraFrameTransformHandles.Install();
             AllEffectMarkerOverlayV2.Install();
         }
     }
