@@ -59,7 +59,17 @@ namespace Euclid
                 return;
             }
 
-            EuclidMod.Behaviour?.HandleEditorLevelLoad();
+            GuideLineTool.SnapSelectedShapeDrag = false;
+            CoordinateSnapTool.ResetPositionTrackReference();
+            ConstructionShapeTool.ClearAll();
+            ConstructionShapeCanvasOverlay.Refresh();
+
+            var behaviour = EuclidMod.Behaviour;
+            if (behaviour != null)
+            {
+                var panel = behaviour.GetComponent<EuclidPanel>();
+                panel?.HandleEditorMapChanged();
+            }
         }
     }
 }
