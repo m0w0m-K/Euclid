@@ -71,7 +71,7 @@ namespace Euclid
 
         private void BuildShapeListContent()
         {
-            AddLabel(EuclidText.Get("panel.constructionList"), 20, FontStyle.Bold);
+            AddLabel(EuclidText.Get("panel.constructionList"), LabelTextSize, FontStyle.Bold);
 
             var shapes = ConstructionShapeTool.Shapes;
             if (shapes.Count == 0)
@@ -636,7 +636,7 @@ namespace Euclid
             handleRect.anchorMin = handleAnchorMin;
             handleRect.anchorMax = handleAnchorMax;
             handleRect.pivot = new Vector2(handleRect.pivot.x, 0.5f);
-            handleRect.sizeDelta = new Vector2(10f, 12f);
+            handleRect.sizeDelta = new Vector2(10f, 6f);
             var handle = handleObj.GetComponent<Image>();
             handle.color = Color.white;
 

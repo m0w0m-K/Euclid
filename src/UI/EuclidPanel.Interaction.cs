@@ -13,9 +13,28 @@ namespace Euclid
         // Panel visibility, ADOFAI editor coordination, scrolling, and model <-> input syncing.
         // Methods in this file should orchestrate existing tools rather than implement geometry.
 
-        private static RectOffset ContentPadding()
+        private static RectOffset ContentPadding(InspectorPanel panel)
         {
-            return new RectOffset(6, 22, 8, 14);
+            var panelsRoot = GameCompat.GetInspectorPanels(panel);
+            if (panelsRoot != null)
+            {
+                var nativePanels = panelsRoot.GetComponentsInChildren<PropertiesPanel>(true);
+                for (var i = 0; i < nativePanels.Length; i++)
+                {
+                    if (nativePanels[i] != null &&
+                        GameCompat.TryGetMember(nativePanels[i], "contentLayout", out VerticalLayoutGroup layout) &&
+                        layout != null && layout.padding != null)
+                    {
+                        return new RectOffset(
+                            layout.padding.left,
+                            layout.padding.right,
+                            layout.padding.top,
+                            layout.padding.bottom);
+                    }
+                }
+            }
+
+            return new RectOffset(16, 22, 8, 14);
         }
 
         private void ShowToolPanel()
@@ -25,7 +44,7 @@ namespace Euclid
                 return;
             }
 
-            if (selected && panelObject != null && panelObject.activeSelf)
+            if (selected && panelContentObject != null && panelContentObject.activeSelf)
             {
                 CloseToolPanel();
                 return;
@@ -91,7 +110,7 @@ namespace Euclid
 
             foreach (Transform child in panelsRoot)
             {
-                if (child != null && child.gameObject != panelObject)
+                if (child != null && child.gameObject != panelContentObject)
                 {
                     child.gameObject.SetActive(false);
                 }
@@ -117,14 +136,14 @@ namespace Euclid
         private bool BuiltInPanelIsVisible()
         {
             var panelsRoot = GameCompat.GetInspectorPanels(owner);
-            if (owner == null || panelsRoot == null || panelObject == null || !panelObject.activeSelf)
+            if (owner == null || panelsRoot == null || panelContentObject == null || !panelContentObject.activeSelf)
             {
                 return false;
             }
 
             foreach (Transform child in panelsRoot)
             {
-                if (child != null && child.gameObject != panelObject && child.gameObject.activeSelf)
+                if (child != null && child.gameObject != panelContentObject && child.gameObject.activeSelf)
                 {
                     return true;
                 }

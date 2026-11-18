@@ -38,6 +38,7 @@ namespace Euclid
         private InspectorPanel detailOwner;
         private GameObject tabObject;
         private GameObject panelObject;
+        private GameObject panelContentObject;
         private GameObject detailPanelObject;
         private RectTransform content;
         private RectTransform detailContent;
@@ -54,7 +55,9 @@ namespace Euclid
         private Button tabButton;
         private TMP_Text tabLabel;
         private bool tabVisualSelected;
+        private bool tabVisualStateInitialized;
         private bool tabPositionInitialized;
+        private int tabBaseSiblingIndex;
         private Vector2 tabBaseAnchorMin;
         private Vector2 tabBaseAnchorMax;
         private Vector2 tabBasePivot;
@@ -156,7 +159,7 @@ namespace Euclid
         internal bool IsScreenPointOverToolUi(Vector2 screenPoint)
         {
             return ContainsScreenPoint(tabObject, screenPoint)
-                || ContainsScreenPoint(panelObject, screenPoint)
+                || ContainsScreenPoint(panelContentObject, screenPoint)
                 || ContainsScreenPoint(detailPanelObject, screenPoint);
         }
 
@@ -296,9 +299,9 @@ namespace Euclid
                 Destroy(tabObject);
             }
 
-            if (panelObject != null)
+            if (panelContentObject != null)
             {
-                Destroy(panelObject);
+                Destroy(panelContentObject);
             }
 
             if (detailPanelObject != null)
@@ -309,6 +312,7 @@ namespace Euclid
             RestoreOuterScroll();
             tabObject = null;
             panelObject = null;
+            panelContentObject = null;
             detailPanelObject = null;
             content = null;
             detailContent = null;
@@ -319,7 +323,9 @@ namespace Euclid
             tabButton = null;
             tabLabel = null;
             tabVisualSelected = false;
+            tabVisualStateInitialized = false;
             tabPositionInitialized = false;
+            tabBaseSiblingIndex = 0;
         }
 
         private void CreateTab()
@@ -359,7 +365,7 @@ namespace Euclid
             tabButton.onClick.AddListener(ShowToolPanel);
 
             var labelObject = new GameObject("ToolIconLabel", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            labelObject.transform.SetParent(tabObject.transform, false);
+            labelObject.transform.SetParent(tabButton.transform, false);
             var labelRect = labelObject.GetComponent<RectTransform>();
             Stretch(labelRect, 0f, 0f, 0f, 0f);
 
@@ -380,8 +386,8 @@ namespace Euclid
             label.color = new Color(0.82f, 1f, 1f, 1f);
             label.raycastTarget = false;
 
-            SetTabSelectedVisual(false);
             PositionTab();
+            SetTabSelectedVisual(false);
         }
 
         private void CreatePanel()
@@ -392,21 +398,14 @@ namespace Euclid
                 return;
             }
 
-            panelObject = new GameObject(PanelObjectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            panelObject.transform.SetParent(panelsRoot, false);
-            var panelRect = panelObject.GetComponent<RectTransform>();
-            Stretch(panelRect, 0f, 0f, 0f, 0f);
-
-            var background = panelObject.GetComponent<Image>();
-            background.color = new Color(0f, 0f, 0f, 0.86f);
-
-            var contentObject = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup));
-            contentObject.transform.SetParent(panelObject.transform, false);
-            content = contentObject.GetComponent<RectTransform>();
+            panelObject = panelsRoot.gameObject;
+            panelContentObject = new GameObject(PanelObjectName, typeof(RectTransform), typeof(VerticalLayoutGroup));
+            panelContentObject.transform.SetParent(panelsRoot, false);
+            content = panelContentObject.GetComponent<RectTransform>();
             Stretch(content, 16f, 16f, 16f, 16f);
-            ConfigureRootContentLayout(contentObject, ContentPadding());
+            ConfigureRootContentLayout(panelContentObject, ContentPadding(owner));
 
-            EnsureDetailPanel(panelRect);
+            EnsureDetailPanel(content);
             BuildPanelContent();
             SetPanelActive(false);
         }

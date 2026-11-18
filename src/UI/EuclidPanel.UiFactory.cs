@@ -610,7 +610,7 @@ namespace Euclid
                 tabRect.sizeDelta = tabBaseSizeDelta;
                 tabRect.anchoredPosition = tabBaseAnchoredPosition;
                 tabRect.localScale = Vector3.one;
-                tabObject.transform.SetAsLastSibling();
+                SetTabSiblingOrder();
                 return;
             }
 
@@ -625,6 +625,7 @@ namespace Euclid
                 tabBasePivot = tabRect.pivot;
                 tabBaseSizeDelta = tabRect.sizeDelta;
                 tabBaseAnchoredPosition = tabRect.anchoredPosition;
+                tabBaseSiblingIndex = tabObject.transform.GetSiblingIndex();
                 tabPositionInitialized = true;
                 return;
             }
@@ -694,14 +695,40 @@ namespace Euclid
             tabRect.anchoredPosition = new Vector2(templateRect.anchoredPosition.x, bottomY - tabStep);
             tabRect.sizeDelta = templateRect.sizeDelta;
             tabRect.localScale = Vector3.one;
-            tabObject.transform.SetAsLastSibling();
+            SetTabSiblingOrder();
 
             tabBaseAnchorMin = tabRect.anchorMin;
             tabBaseAnchorMax = tabRect.anchorMax;
             tabBasePivot = tabRect.pivot;
             tabBaseSizeDelta = tabRect.sizeDelta;
             tabBaseAnchoredPosition = tabRect.anchoredPosition;
+            tabBaseSiblingIndex = tabObject.transform.GetSiblingIndex();
             tabPositionInitialized = true;
+        }
+
+        private void SetTabSiblingOrder()
+        {
+            var tabsRoot = GameCompat.GetInspectorTabs(owner);
+            if (tabObject == null || tabsRoot == null)
+            {
+                return;
+            }
+
+            if (tabPositionInitialized)
+            {
+                tabObject.transform.SetSiblingIndex(Mathf.Clamp(tabBaseSiblingIndex, 0, tabsRoot.childCount - 1));
+                return;
+            }
+
+            var template = FindTemplateTab(tabsRoot);
+            if (template != null)
+            {
+                tabObject.transform.SetSiblingIndex(template.GetSiblingIndex() + 1);
+            }
+            else
+            {
+                tabObject.transform.SetSiblingIndex(Mathf.Clamp(tabBaseSiblingIndex, 0, tabsRoot.childCount - 1));
+            }
         }
 
         private void RemoveOrphanedObjects()
@@ -900,9 +927,9 @@ namespace Euclid
 
         private void SetPanelActive(bool active)
         {
-            if (panelObject != null && panelObject.activeSelf != active)
+            if (panelContentObject != null && panelContentObject.activeSelf != active)
             {
-                panelObject.SetActive(active);
+                panelContentObject.SetActive(active);
             }
 
             SetDetailPanelActive(active);
@@ -969,13 +996,20 @@ namespace Euclid
 
             AlignDetailPanelToHost(
                 detailPanelObject.GetComponent<RectTransform>(),
-                panelObject != null ? panelObject.GetComponent<RectTransform>() : null,
+                panelContentObject != null ? panelContentObject.GetComponent<RectTransform>() : null,
                 detailPanelObject.transform.parent);
         }
 
         private void SetTabSelectedVisual(bool value)
         {
+            if (tabVisualStateInitialized && tabVisualSelected == value)
+            {
+                return;
+            }
+
             tabVisualSelected = value;
+            tabVisualStateInitialized = true;
+            SetTabSiblingOrder();
 
             // A cloned ADOFAI tab already knows how selected/unselected tabs should look.
             // Reuse that exact visual state instead of applying a custom grey tint, which made
@@ -990,17 +1024,11 @@ namespace Euclid
                         tabButton.interactable = true;
                     }
 
-                    // The original icon is hidden, but SetSelected still updates its tint. Mirror
-                    // that tint onto the Å text so our replacement icon follows the same theme.
                     if (tabLabel != null && visualTab.icon != null)
                     {
                         tabLabel.color = visualTab.icon.color;
                     }
 
-                    if (!value)
-                    {
-                        PositionTab();
-                    }
                     return;
                 }
             }
@@ -1023,47 +1051,13 @@ namespace Euclid
             {
                 tabLabel.color = value ? Color.white : new Color(1f, 1f, 1f, 0.72f);
             }
-
-            if (!value)
-            {
-                PositionTab();
-            }
         }
 
-        private void ApplyManualTabVisual(bool selectedVisual)
+        private void SyncTabLabelColorFromNativeIcon()
         {
-            if (tabLabel != null)
+            if (tabLabel != null && visualTab != null && visualTab.icon != null)
             {
-                tabLabel.color = selectedVisual
-                    ? new Color(0.82f, 1f, 1f, 1f)
-                    : new Color(0.62f, 0.78f, 0.78f, 0.9f);
-            }
-
-            if (tabButton != null)
-            {
-                var colors = tabButton.colors;
-                colors.normalColor = selectedVisual
-                    ? new Color(1f, 1f, 1f, 0.78f)
-                    : new Color(0.58f, 0.58f, 0.58f, 0.78f);
-                colors.highlightedColor = selectedVisual
-                    ? new Color(1f, 1f, 1f, 0.9f)
-                    : new Color(0.7f, 0.7f, 0.7f, 0.85f);
-                colors.pressedColor = new Color(0.86f, 0.86f, 0.86f, 0.95f);
-                colors.selectedColor = colors.normalColor;
-                tabButton.colors = colors;
-
-                if (tabButton.targetGraphic is Image targetImage)
-                {
-                    targetImage.color = colors.normalColor;
-                }
-            }
-
-            var rootImage = tabObject != null ? tabObject.GetComponent<Image>() : null;
-            if (rootImage != null)
-            {
-                rootImage.color = selectedVisual
-                    ? new Color(1f, 1f, 1f, 0.72f)
-                    : new Color(0.58f, 0.58f, 0.58f, 0.62f);
+                tabLabel.color = visualTab.icon.color;
             }
         }
 

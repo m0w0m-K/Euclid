@@ -97,10 +97,18 @@ namespace Euclid
             // sprites are fallbacks for Unity/ADOFAI versions where suitable templates cannot be found.
             internal static UiStyle Capture(InspectorPanel panel)
             {
-                var font = panel != null && panel.title != null ? panel.title.font : null;
-                var fontMaterial = panel != null && panel.title != null ? panel.title.fontMaterial : null;
                 var buttonTemplate = FindButtonTemplate(panel);
                 var inputTemplate = FindInputTemplate(panel);
+                var bodyText = FindBodyTextTemplate(panel);
+                if (bodyText == null && inputTemplate != null)
+                {
+                    bodyText = inputTemplate.GetComponent<TMP_InputField>()?.textComponent;
+                }
+
+                var font = bodyText != null ? bodyText.font : panel != null && panel.title != null ? panel.title.font : null;
+                var fontMaterial = bodyText != null
+                    ? bodyText.fontMaterial
+                    : panel != null && panel.title != null ? panel.title.fontMaterial : null;
 
                 var buttonImage = new ImageStyle(
                     CreateRoundedRectSprite("Euclid_Button_Fill", filled: true),
@@ -129,6 +137,58 @@ namespace Euclid
                 buttonColors.fadeDuration = 0f;
 
                 return new UiStyle(font, fontMaterial, buttonTemplate, inputTemplate, buttonImage, inputStyle, toggleOnStyle, toggleOffStyle, buttonColors);
+            }
+
+            private static TMP_Text FindBodyTextTemplate(InspectorPanel panel)
+            {
+                var panelsRoot = GameCompat.GetInspectorPanels(panel);
+                if (panelsRoot == null)
+                {
+                    return null;
+                }
+
+                var texts = panelsRoot.GetComponentsInChildren<TMP_Text>(true);
+                var fontCounts = new Dictionary<TMP_FontAsset, int>();
+                for (var i = 0; i < texts.Length; i++)
+                {
+                    var text = texts[i];
+                    if (text == null || text.font == null || text == panel.title || text == panel.messageText ||
+                        text.GetComponentInParent<Button>() != null || text.GetComponentInParent<TMP_InputField>() != null)
+                    {
+                        continue;
+                    }
+
+                    fontCounts.TryGetValue(text.font, out var count);
+                    fontCounts[text.font] = count + 1;
+                }
+
+                TMP_FontAsset bodyFont = null;
+                var highestCount = 0;
+                foreach (var pair in fontCounts)
+                {
+                    if (pair.Value > highestCount)
+                    {
+                        bodyFont = pair.Key;
+                        highestCount = pair.Value;
+                    }
+                }
+
+                if (bodyFont == null)
+                {
+                    return null;
+                }
+
+                for (var i = 0; i < texts.Length; i++)
+                {
+                    var text = texts[i];
+                    if (text != null && text.font == bodyFont && text != panel.title && text != panel.messageText &&
+                        text.GetComponentInParent<Button>() == null && text.GetComponentInParent<TMP_InputField>() == null)
+                    {
+                        return text;
+                    }
+                }
+
+                return null;
             }
 
             private static Sprite CreateRoundedRectSprite(string name, bool filled)

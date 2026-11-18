@@ -46,7 +46,7 @@ Assert-True (-not ($projectText -match 'EditorTabLib')) 'EditorTabLib must not b
 Assert-True (-not ($projectText -match '\bLocalizations\b')) 'The old external Localizations dependency must not be referenced.'
 Assert-True ($projectText -match '<Private>false</Private>') 'Game/Unity references should remain non-copy-local.'
 
-$sourceFiles = Get-ChildItem -LiteralPath $root -Filter '*.cs' -File
+$sourceFiles = Get-ChildItem -LiteralPath $root -Filter '*.cs' -File -Recurse
 $sourceText = ($sourceFiles | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }) -join "`n"
 
 Assert-True ($sourceText -match 'label\.text\s*=\s*"Å"') 'Current Euclid tab icon must be Å.'
@@ -55,6 +55,7 @@ Assert-True (-not (Test-Path (Join-Path $root 'AdofaiColorFieldBridge.cs'))) 'Un
 Assert-True (-not (Test-Path (Join-Path $root 'CameraFrameGui.cs'))) 'Unused CameraFrameGui.cs should stay removed.'
 Assert-True (-not (Test-Path (Join-Path $root 'SnapshotGui.cs'))) 'Unused SnapshotGui.cs should stay removed.'
 Assert-True (Test-Path (Join-Path $root 'BUILD_RELEASE.cmd')) 'BUILD_RELEASE.cmd is missing.'
+Assert-True (Test-Path (Join-Path $root 'src\Runtime\Startup.cs')) 'src/Runtime/Startup.cs is missing.'
 
 $localizationDir = Join-Path $root 'Localization'
 $englishPath = Join-Path $localizationDir 'en.lang'

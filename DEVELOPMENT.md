@@ -4,6 +4,30 @@ This document is for developers working on **Euclid**, an editor utility mod for
 
 `README.md` is user-facing. This file documents current architecture, invariants, fragile integration points, debugging strategy, and release verification. It is intentionally not a changelog.
 
+## Quick start
+
+The project is a Unity Mod Manager mod targeting ADOFAI 3.3.0. Open `Euclid.csproj` in Visual Studio or VS Code and build against an installed ADOFAI game directory. The project references the game's Managed assemblies directly; a build without those assemblies cannot validate game-facing APIs.
+
+```powershell
+scripts\check_project.ps1
+dotnet build Euclid.csproj -c Debug "-p:GameDir=C:\Program Files (x86)\Steam\steamapps\common\A Dance of Fire and Ice"
+```
+
+For a packaged release, use `BUILD_RELEASE.cmd` (or pass the game directory as its first argument). It builds the DLL and creates a UMM ZIP under `dist/`.
+
+Source paths below are relative to the repository root. Start feature work at the owner of the behavior, then keep integration details at their existing boundary:
+
+| Area | Main entry points |
+| --- | --- |
+| Runtime startup and update order | `src/Runtime/Startup.cs`, `src/Runtime/EuclidMod.cs`, `src/Runtime/EuclidBehaviour.cs` |
+| Inspector tabs and panels | `src/UI/EuclidPanel.cs`, `src/UI/EuclidPanel.Interaction.cs`, `src/UI/EuclidPanel.UiFactory.cs` |
+| Shape editing and geometry | `src/UI/EuclidPanel.Construction.cs`, `src/Construction/ConstructionShapeTool.cs`, `src/Construction/ConstructionShapeCanvasOverlay.cs` |
+| Effect coordinates and snapping | `src/Construction/CoordinateSnapTool.cs`, `src/Camera/CameraFrameEditor.cs` |
+| Effect marker rendering | `src/Effects/EffectOverlayCollection.cs`, `src/Effects/AllEffectMarkerOverlayV2.cs` |
+| ADOFAI compatibility | `src/Integration/GameCompat.cs`, `src/Integration/LevelEventCompat.cs` |
+
+After changing C# code, run the focused project build. For editor timing or marker changes, also run the relevant manual regression checklist below in ADOFAI.
+
 ## Target environment
 
 - A Dance of Fire and Ice: **3.3.0**
@@ -17,9 +41,9 @@ ADOFAI editor classes are not a stable public API. Fields, methods, event storag
 Keep version-sensitive access concentrated in integration/compatibility code. In particular:
 
 ```text
-GameCompat.cs
-LevelEventCompat.cs
-EditorLevelLoadPatch.cs
+src/Integration/GameCompat.cs
+src/Integration/LevelEventCompat.cs
+src/Integration/EditorLevelLoadPatch.cs
 ```
 
 Do not scatter new reflection or Harmony assumptions through feature code when one integration layer can own them.
@@ -31,64 +55,64 @@ Do not scatter new reflection or Harmony assumptions through feature code when o
 ### Runtime / bootstrap
 
 ```text
-Startup.cs
-EuclidMod.cs
-EuclidBehaviour.cs
-EditorLevelLoadPatch.cs
+src/Runtime/Startup.cs
+src/Runtime/EuclidMod.cs
+src/Runtime/EuclidBehaviour.cs
+src/Integration/EditorLevelLoadPatch.cs
 ```
 
-`Startup.cs` is the UMM entry point and should remain small. It initializes the mod and installs runtime hooks.
+`src/Runtime/Startup.cs` is the UMM entry point and should remain small. It initializes the mod and installs runtime hooks.
 
-`EuclidMod.cs` owns UMM-facing state such as enable/disable, options UI, settings persistence, localization-facing configuration, and effect-overlay palettes.
+`src/Runtime/EuclidMod.cs` owns UMM-facing state such as enable/disable, options UI, settings persistence, localization-facing configuration, and effect-overlay palettes.
 
-`EuclidBehaviour.cs` is the frame coordinator. It owns high-level update ordering, snapshot refresh, panel ticking, scene-level point-pick priority, and fallback map-boundary observation.
+`src/Runtime/EuclidBehaviour.cs` is the frame coordinator. It owns high-level update ordering, snapshot refresh, panel ticking, scene-level point-pick priority, and fallback map-boundary observation.
 
-`EditorLevelLoadPatch.cs` owns the authoritative editor-level load hook. ADOFAI can reuse editor, `levelData`, panel, and floor objects across loads, and a short loading interval can complete between Euclid `Update` calls. For this reason, map-local Euclid state is cleared from the real `scnEditor.OpenLevelCo` load path rather than relying only on polling identities.
+`src/Integration/EditorLevelLoadPatch.cs` owns the authoritative editor-level load hook. ADOFAI can reuse editor, `levelData`, panel, and floor objects across loads, and a short loading interval can complete between Euclid `Update` calls. For this reason, map-local Euclid state is cleared from the real `scnEditor.OpenLevelCo` load path rather than relying only on polling identities.
 
 ### Panel / construction UI
 
 ```text
-EuclidPanel.cs
-EuclidPanel.Construction.cs
-EuclidPanel.EndpointUi.cs
-EuclidPanel.PointBinding.cs
-EuclidPanel.Interaction.cs
-EuclidPanel.UiFactory.cs
-EuclidPanel.Style.cs
+src/UI/EuclidPanel.cs
+src/UI/EuclidPanel.Construction.cs
+src/UI/EuclidPanel.EndpointUi.cs
+src/UI/EuclidPanel.PointBinding.cs
+src/UI/EuclidPanel.Interaction.cs
+src/UI/EuclidPanel.UiFactory.cs
+src/UI/EuclidPanel.Style.cs
 ```
 
-`EuclidPanel.Construction.cs` owns Shape Info, shape-list UI, endpoint position picking, and construction selection controls.
+`src/UI/EuclidPanel.Construction.cs` owns Shape Info, shape-list UI, endpoint position picking, and construction selection controls.
 
-`EuclidPanel.PointBinding.cs` owns endpoint source binding and Pin behavior.
+`src/UI/EuclidPanel.PointBinding.cs` owns endpoint source binding and Pin behavior.
 
-`EuclidPanel.EndpointUi.cs` owns endpoint validation and endpoint-specific UI behavior.
+`src/UI/EuclidPanel.EndpointUi.cs` owns endpoint validation and endpoint-specific UI behavior.
 
-`EuclidPanel.UiFactory.cs` should be used for common rows, buttons, inputs, sliders, and style-preserving control creation.
+`src/UI/EuclidPanel.UiFactory.cs` should be used for common rows, buttons, inputs, sliders, and style-preserving control creation.
 
 ### Geometry / snapping
 
 ```text
-ConstructionShapeTool.cs
-GuideLineTool.cs
-CoordinateSnapTool.cs
-Vector2d.cs
+src/Construction/ConstructionShapeTool.cs
+src/Construction/GuideLineTool.cs
+src/Construction/CoordinateSnapTool.cs
+src/Construction/Vector2d.cs
 ```
 
 Keep geometry math out of UI callbacks when possible.
 
-`CoordinateSnapTool.cs` is the central bridge between construction geometry and editable ADOFAI event properties.
+`src/Construction/CoordinateSnapTool.cs` is the central bridge between construction geometry and editable ADOFAI event properties.
 
 ### Effect editing / visualization
 
 ```text
-CameraFrameEditor.cs
-CameraFrameSnapshot.cs
-CameraFrameOverlay.cs
-CameraFrameTransformHandles.cs
-EffectOverlayVisual.cs
-EffectOverlayCollection.cs
-AllEffectMarkerOverlayV2.cs
-AllEffectMarkerSettings.cs
+src/Camera/CameraFrameEditor.cs
+src/Camera/CameraFrameSnapshot.cs
+src/Camera/CameraFrameOverlay.cs
+src/Camera/CameraFrameTransformHandles.cs
+src/Effects/EffectOverlayVisual.cs
+src/Effects/EffectOverlayCollection.cs
+src/Effects/AllEffectMarkerOverlayV2.cs
+src/Effects/AllEffectMarkerSettings.cs
 ```
 
 Selected effect markers and all-effect/background markers have different responsibilities:
@@ -101,12 +125,12 @@ Do not let background marker enumeration mutate selected-effect edit caches.
 ### PositionTrack synchronization
 
 ```text
-CoordinateSnapTool.cs
-PositionTrackFocusSync.cs
-PositionTrackMarkerDragFocus.cs
-PositionTrackSnapCommitSync.cs
-PositionTrackAppliedSync.cs
-CameraFrameEditor.cs
+src/Construction/CoordinateSnapTool.cs
+src/Effects/PositionTrackFocusSync.cs
+src/Effects/PositionTrackMarkerDragFocus.cs
+src/Effects/PositionTrackSnapCommitSync.cs
+src/Effects/PositionTrackAppliedSync.cs
+src/Camera/CameraFrameEditor.cs
 ```
 
 These files form one state flow. Changes to one should be reviewed against the others.
@@ -147,12 +171,12 @@ Do not patch the no-argument file-picker entry point merely because it is named 
 If map-local state survives a level load, inspect in this order:
 
 ```text
-Startup.cs installs EditorLevelLoadPatch
-EditorLevelLoadPatch finds OpenLevelCo overload(s)
+src/Runtime/Startup.cs installs src/Integration/EditorLevelLoadPatch.cs
+src/Integration/EditorLevelLoadPatch.cs finds OpenLevelCo overload(s)
 UMM log reports installed load hook(s)
 load hook runs for the selected path
 HandleEditorMapChanged clears panel-local state
-ConstructionShapeTool.ClearAll clears model state
+src/Construction/ConstructionShapeTool.ClearAll clears model state
 ```
 
 ---
@@ -173,6 +197,8 @@ b = y1 - a*x1
 ```
 
 Line angle `θ` is an undirected orientation normalized into `[0°, 180°)`.
+
+The Shape Info panel shows line `a` (slope), `b` (y-intercept), and `θ` immediately below the color controls. A vertical line has undefined `b`; a zero-length line has undefined line values. A circle shows `r` (distance from P1 center to P2) in the same location.
 
 Circle semantics:
 
@@ -322,6 +348,8 @@ For an already-applied `relativeTo = ThisTile` PositionTrack:
 referenceWorld = displayedFloorWorld - effectiveOffset * tileSize
 targetWorld    = referenceWorld + effectiveOffset * tileSize
 ```
+
+The tile/reference marker represents `referenceWorld`, the host tile's position before this PositionTrack offset. The position marker represents the applied or pending target. `LevelEvent.floor` remains the host tile's `seqID`; it identifies which event/tile owns the effect and must not be rewritten to the nearest tile at the reference coordinate. Resolve a floor by `seqID`, not by assuming it equals its current list index.
 
 When `positionOffset` is disabled:
 
@@ -481,7 +509,7 @@ SaveState
 
 Do not blindly force every edited property enabled. Preserve disabled state when the operation is only updating stored value; enable explicitly when the UI action semantically edits an active property.
 
-### `LevelEventCompat.cs`
+### `src/Integration/LevelEventCompat.cs`
 
 Use for:
 
@@ -490,7 +518,7 @@ Use for:
 - property enabled/disabled checks
 - storage compatibility
 
-### `GameCompat.cs`
+### `src/Integration/GameCompat.cs`
 
 Use for:
 
@@ -583,10 +611,10 @@ Euclid.csproj
 Inspect the event commit/application path rather than marker geometry:
 
 ```text
-CameraFrameEditor.cs
-PositionTrackMarkerDragFocus.cs
-PositionTrackSnapCommitSync.cs
-GameCompat apply/refresh helpers
+src/Camera/CameraFrameEditor.cs
+src/Effects/PositionTrackMarkerDragFocus.cs
+src/Effects/PositionTrackSnapCommitSync.cs
+src/Integration/GameCompat.cs apply/refresh helpers
 ```
 
 ### Actual tile is correct, reference marker jumps opposite
@@ -594,8 +622,8 @@ GameCompat apply/refresh helpers
 Inspect:
 
 ```text
-CoordinateSnapTool PositionTrack applied cache
-PositionTrackFocusSync.cs
+src/Construction/CoordinateSnapTool.cs PositionTrack applied cache
+src/Effects/PositionTrackFocusSync.cs
 property enabled/disabled state
 effective offset vs raw offset
 ```
@@ -606,7 +634,7 @@ Inspect initial `LayoutElement`, parent `LayoutGroup`, interactable state, and b
 
 ### Shapes remain after opening another map
 
-Inspect `EditorLevelLoadPatch` and the `OpenLevelCo` hook first. Only after that inspect `EuclidBehaviour` fallback detection and `EuclidPanel.HandleEditorMapChanged()`.
+Inspect `src/Integration/EditorLevelLoadPatch.cs` and the `OpenLevelCo` hook first. Only after that inspect `src/Runtime/EuclidBehaviour.cs` fallback detection and `EuclidPanel.HandleEditorMapChanged()`.
 
 ### Opening the file picker clears shapes before a file is chosen
 
@@ -705,7 +733,7 @@ When a new game version breaks Euclid:
 1. Reproduce on the new version.
 2. Check UMM logs.
 3. Inspect `Assembly-CSharp.dll` with ILSpy.
-4. Check `GameCompat.cs`, `LevelEventCompat.cs`, and Harmony patch targets first.
+4. Check `src/Integration/GameCompat.cs`, `src/Integration/LevelEventCompat.cs`, and Harmony patch targets first.
 5. Verify `OpenLevelCo` or its replacement load path.
 6. Verify event serialization wrappers and disabled-property representation.
 7. Verify editor hierarchy assumptions used for native inspector controls.

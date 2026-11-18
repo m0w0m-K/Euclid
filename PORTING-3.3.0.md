@@ -29,9 +29,9 @@ A Dance of Fire and Ice_Data\Managed\UnityModManager\0Harmony.dll
 
 ADOFAI editor internals are not a stable mod API. Keep version-sensitive assumptions concentrated in:
 
-- `GameCompat.cs`: `scnEditor`, inspector panels, selected events/floors, SaveState/apply/refresh calls, editor object lookup
-- `LevelEventCompat.cs`: raw `LevelEvent` values, enum/wrapper normalization, property enabled/disabled state
-- `EditorLevelLoadPatch.cs`: Harmony discovery of the concrete editor level-load coroutine
+- `src/Integration/GameCompat.cs`: `scnEditor`, inspector panels, selected events/floors, SaveState/apply/refresh calls, editor object lookup
+- `src/Integration/LevelEventCompat.cs`: raw `LevelEvent` values, enum/wrapper normalization, property enabled/disabled state
+- `src/Integration/EditorLevelLoadPatch.cs`: Harmony discovery of the concrete editor level-load coroutine
 
 Feature code should use these integration points rather than adding unrelated reflection or patch assumptions directly into UI/geometry code.
 

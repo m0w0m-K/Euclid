@@ -38,6 +38,7 @@ namespace Euclid
                 return;
             }
 
+            SyncTabLabelColorFromNativeIcon();
             UpdatePointBindings();
             RefreshPointBindingButtons();
         }
