@@ -28,13 +28,12 @@ MyMod-1.0.0.zip
    └─ MyMod.dll
 ```
 
-Euclid 1.0.0도 같은 구조입니다.
+Euclid의 Release ZIP은 `Info.json`을 최상위에 두어 UMM이 바로 인식할 수 있게 합니다.
 
 ```text
-Euclid-1.0.0.zip
-└─ Euclid/
-   ├─ Info.json
-   └─ Euclid.dll
+Euclid-1.0.1.zip
+├─ Info.json
+└─ Euclid.dll
 ```
 
 최소 `Info.json` 예시:
@@ -73,10 +72,10 @@ UMM 설정, 영구 `MonoBehaviour`, Harmony 패치 설치, 기능별 서비스 �
 Euclid의 대응 파일:
 
 ```text
-Startup.cs
-EuclidMod.cs
-EuclidBehaviour.cs
-EditorLevelLoadPatch.cs
+src/Runtime/Startup.cs
+src/Runtime/EuclidMod.cs
+src/Runtime/EuclidBehaviour.cs
+src/Integration/EditorLevelLoadPatch.cs
 ```
 
 ---
@@ -253,10 +252,10 @@ GameCompat.TryRefreshEventPanel(editor, ev);
 Euclid에서 우선 볼 파일:
 
 ```text
-GameCompat.cs
-LevelEventCompat.cs
-EditorLevelLoadPatch.cs
-CameraFrameEditor.cs
+src/Integration/GameCompat.cs
+src/Integration/LevelEventCompat.cs
+src/Integration/EditorLevelLoadPatch.cs
+src/Camera/CameraFrameEditor.cs
 ```
 
 `LevelEventCompat`는 raw dictionary/indexer 차이, enum wrapper, property enabled/disabled 표현을 흡수하는 역할을 합니다.
@@ -369,13 +368,20 @@ Euclid는 외부 탭 라이브러리 없이 게임 UI를 직접 복제/확장합
 관련 파일:
 
 ```text
-EuclidPanel.cs
-EuclidPanel.UiFactory.cs
-EuclidPanel.Style.cs
-GameCompat.cs
+src/UI/EuclidPanel.cs
+src/UI/EuclidPanel.UiFactory.cs
+src/UI/EuclidPanel.Style.cs
+src/Integration/GameCompat.cs
 ```
 
 기존 UI clone은 스프라이트, 폰트, padding, transition을 그대로 얻을 수 있다는 장점이 있지만, template에 남은 게임 스크립트가 예상치 못한 동작을 할 수 있으므로 반드시 정리해야 합니다.
+
+### Inspector tab / panel 구현 팁
+
+- `InspectorPanel.tabs`와 `InspectorPanel.panels`의 실제 Transform 계층을 런타임에서 확인합니다. `SetSiblingIndex`는 같은 부모의 자식끼리만 순서를 바꾸며, sibling index만으로 서로 다른 부모의 탭과 패널 앞뒤를 제어할 수 없습니다. 공유 컨테이너 전체를 재정렬하면 다른 기본 탭까지 가려질 수 있습니다.
+- `InspectorTab.SetSelected`는 색을 tween할 수 있습니다. 호출 직후 아이콘 색을 한 번 복사하면 tween 시작 시점의 이전 색만 복사될 수 있으므로, 대체 아이콘은 같은 tween을 적용하거나 tween이 진행되는 동안 원본 색을 계속 동기화합니다.
+- 기본 인스펙터의 `panels` 컨테이너와 외곽 프레임은 가능한 한 재사용하고, 기능별 콘텐츠만 자식으로 둡니다. 이벤트별 `PropertiesPanel`은 기본 이벤트 편집 UI이므로 공용 패널처럼 재사용하거나 교체하지 않습니다.
+- 컴파일만으로 탭 선택 색과 겹침을 검증할 수 없습니다. 선택/해제 양쪽 상태를 게임에서 확인하고, 기본 탭의 순서와 프레임이 함께 유지되는지 확인합니다.
 
 ---
 
@@ -469,16 +475,16 @@ Vector2 screenPoint;
 Euclid 예:
 
 ```text
-ConstructionShapeTool.cs
+src/Construction/ConstructionShapeTool.cs
   상태 + 기하 계산
 
-ConstructionShapeCanvasOverlay.cs
+src/Construction/ConstructionShapeCanvasOverlay.cs
   렌더링
 
-CoordinateSnapTool.cs
+src/Construction/CoordinateSnapTool.cs
   계산 결과를 ADOFAI 좌표 property로 변환
 
-EuclidPanel.Construction.cs
+src/UI/EuclidPanel.Construction.cs
   사용자 UI
 ```
 
@@ -492,7 +498,7 @@ EuclidPanel.Construction.cs
 
 비슷한 프로퍼티 이름을 가진 이벤트라고 해서 같은 모델로 처리할 수 있는 것은 아닙니다.
 
-Euclid 1.0.0의 coordinate overlay/snap 지원 범위:
+Euclid 1.0.1의 coordinate overlay/snap 지원 범위:
 
 ```text
 MoveCamera / CameraMove
@@ -623,10 +629,9 @@ UMM에서 ZIP으로 설치
 Euclid의 `Euclid.csproj`는 Release 빌드 후 다음 구조의 ZIP을 자동 생성합니다.
 
 ```text
-dist/Euclid-1.0.0.zip
-└─ Euclid/
-   ├─ Euclid.dll
-   └─ Info.json
+dist/Euclid-1.0.1.zip
+├─ Euclid.dll
+└─ Info.json
 ```
 
 `Info.json`과 `.csproj`의 버전은 항상 같아야 합니다.
@@ -786,14 +791,14 @@ UI 위치: UMM Options / editor panel
 Euclid와 비슷한 에디터 기능이면 다음 파일을 참고 대상으로 지정할 수 있습니다.
 
 ```text
-GameCompat.cs
-LevelEventCompat.cs
-EditorLevelLoadPatch.cs
-EuclidBehaviour.cs
-EuclidPanel.cs
-EuclidPanel.Construction.cs
-CoordinateSnapTool.cs
-CameraFrameEditor.cs
+src/Integration/GameCompat.cs
+src/Integration/LevelEventCompat.cs
+src/Integration/EditorLevelLoadPatch.cs
+src/Runtime/EuclidBehaviour.cs
+src/UI/EuclidPanel.cs
+src/UI/EuclidPanel.Construction.cs
+src/Construction/CoordinateSnapTool.cs
+src/Camera/CameraFrameEditor.cs
 Euclid.csproj
 Info.json
 ```

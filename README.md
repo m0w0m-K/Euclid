@@ -17,6 +17,12 @@
 - 모든 지원 이펙트의 위치 마크를 한 번에 표시
 - 직선의 기울기, 절편, 각도와 원의 반지름 표시
 
+## 설치
+
+- 지원 버전: ADOFAI 3.3.0, Unity Mod Manager 0.22.14.0 이상
+- GitHub Releases에서 최신 `Euclid-<version>.zip`을 다운로드합니다.
+- UMM의 모드 설치 화면에 ZIP을 드래그 앤 드롭해 설치한 뒤 모드를 활성화합니다.
+
 ## 유클리드 탭
 
 에디터 왼쪽 탭에 추가되는 `Å` 아이콘을 눌러 유클리드 탭을 열 수 있습니다.
@@ -181,6 +187,12 @@ Euclid is an editor utility mod for A Dance of Fire and Ice that provides geomet
 - Drag the position marker of the selected supported effect directly
 - Display position markers for all supported effects at once
 - Display line slope, y-intercept, angle, and circle radius
+
+## Installation
+
+- Supported versions: ADOFAI 3.3.0 and Unity Mod Manager 0.22.14.0 or later.
+- Download the latest `Euclid-<version>.zip` from GitHub Releases.
+- Drag and drop the ZIP into the UMM mod installer, then enable Euclid.
 
 ## Euclid Tab
 

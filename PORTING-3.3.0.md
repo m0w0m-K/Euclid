@@ -1,6 +1,6 @@
 # ADOFAI 3.3.0 compatibility notes
 
-Euclid 1.0.0 is developed as a standalone Unity Mod Manager mod against ADOFAI 3.3.0. The project references assemblies from the installed game instead of bundling copied or decompiled game binaries.
+Euclid 1.0.1 is developed as a standalone Unity Mod Manager mod against ADOFAI 3.3.0. The project references assemblies from the installed game instead of bundling copied or decompiled game binaries.
 
 ## Reference root
 
@@ -70,7 +70,7 @@ PositionTrack marker dragging is intentionally different: it previews raw offset
 
 ## Supported overlay scope
 
-Euclid 1.0.0 supports coordinate visualization/editing for:
+Euclid 1.0.1 supports coordinate visualization/editing for:
 
 ```text
 MoveCamera / CameraMove
@@ -115,9 +115,8 @@ A Release build creates:
 
 ```text
 dist/Euclid-<version>.zip
-└─ Euclid/
-   ├─ Euclid.dll
-   └─ Info.json
+├─ Euclid.dll
+└─ Info.json
 ```
 
 The source repository cannot substitute for a real build against the target ADOFAI Managed assemblies. Before tagging a release, install the generated ZIP through UMM and re-run the map lifecycle, construction, snapping, PositionTrack, camera-frame, and overlay smoke tests.

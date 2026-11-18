@@ -5,7 +5,7 @@
     <Nullable>disable</Nullable>
     <OutputType>Library</OutputType>
     <AssemblyName>Euclid</AssemblyName>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <RootNamespace>Euclid</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
@@ -84,6 +84,12 @@
       <WithCulture>false</WithCulture>
     </EmbeddedResource>
   </ItemGroup>
+
+  <Target Name="ValidateGameReferences" BeforeTargets="ResolveAssemblyReferences">
+    <Error
+      Condition="'%(Reference.HintPath)' != '' and !Exists('%(Reference.HintPath)')"
+      Text="Required game/UMM DLL is missing: %(Reference.HintPath). Set GameDir, ADOFAI_DIR, or Directory.Build.props to the ADOFAI installation." />
+  </Target>
 
   <Target Name="CreateUmmRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
     <PropertyGroup>

@@ -6,14 +6,15 @@ This document is for developers working on **Euclid**, an editor utility mod for
 
 ## Quick start
 
-The project is a Unity Mod Manager mod targeting ADOFAI 3.3.0. Open `Euclid.csproj` in Visual Studio or VS Code and build against an installed ADOFAI game directory. The project references the game's Managed assemblies directly; a build without those assemblies cannot validate game-facing APIs.
+The project is a Unity Mod Manager mod targeting ADOFAI 3.3.0. It references the game's Managed assemblies directly; game DLLs are not included in the repository. Copy `Directory.Build.example.props` to the ignored `Directory.Build.props` and set `GameDir` for a persistent per-PC path, or set `ADOFAI_DIR` in the environment. A command-line `-p:GameDir=...` or the first argument to `BUILD_RELEASE.cmd` overrides those settings.
 
 ```powershell
+Copy-Item Directory.Build.example.props Directory.Build.props
 scripts\check_project.ps1
-dotnet build Euclid.csproj -c Debug "-p:GameDir=C:\Program Files (x86)\Steam\steamapps\common\A Dance of Fire and Ice"
+dotnet build Euclid.csproj -c Debug
 ```
 
-For a packaged release, use `BUILD_RELEASE.cmd` (or pass the game directory as its first argument). It builds the DLL and creates a UMM ZIP under `dist/`.
+For a packaged release, use `BUILD_RELEASE.cmd` (optionally pass the game directory as its first argument). The project checks each referenced game/UMM DLL before resolving references and creates a flat UMM ZIP under `dist/` with `Euclid.dll` and `Info.json` at its root.
 
 Source paths below are relative to the repository root. Start feature work at the owner of the behavior, then keep integration details at their existing boundary:
 

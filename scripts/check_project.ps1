@@ -55,6 +55,7 @@ Assert-True (-not (Test-Path (Join-Path $root 'AdofaiColorFieldBridge.cs'))) 'Un
 Assert-True (-not (Test-Path (Join-Path $root 'CameraFrameGui.cs'))) 'Unused CameraFrameGui.cs should stay removed.'
 Assert-True (-not (Test-Path (Join-Path $root 'SnapshotGui.cs'))) 'Unused SnapshotGui.cs should stay removed.'
 Assert-True (Test-Path (Join-Path $root 'BUILD_RELEASE.cmd')) 'BUILD_RELEASE.cmd is missing.'
+Assert-True (Test-Path (Join-Path $root 'Directory.Build.example.props')) 'Directory.Build.example.props is missing.'
 Assert-True (Test-Path (Join-Path $root 'src\Runtime\Startup.cs')) 'src/Runtime/Startup.cs is missing.'
 
 $localizationDir = Join-Path $root 'Localization'

@@ -1024,10 +1024,7 @@ namespace Euclid
                         tabButton.interactable = true;
                     }
 
-                    if (tabLabel != null && visualTab.icon != null)
-                    {
-                        tabLabel.color = visualTab.icon.color;
-                    }
+                    SyncTabLabelColorFromNativeIcon();
 
                     return;
                 }
