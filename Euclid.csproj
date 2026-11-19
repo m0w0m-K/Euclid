@@ -91,6 +91,21 @@
       Text="Required game/UMM DLL is missing: %(Reference.HintPath). Set GameDir, ADOFAI_DIR, or Directory.Build.props to the ADOFAI installation." />
   </Target>
 
+  <Target Name="DeployDebugMod" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' and '$(OS)' == 'Windows_NT' and '$(SkipDebugDeploy)' != 'true'">
+    <PropertyGroup>
+      <DebugModDirectory Condition="'$(DebugModDirectory)' == ''">$(GameDir)\Mods\Euclid</DebugModDirectory>
+    </PropertyGroup>
+    <MakeDir Directories="$(DebugModDirectory)" />
+    <Copy SourceFiles="$(TargetPath)"
+          DestinationFiles="$(DebugModDirectory)\Euclid.dll"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Info.json"
+          DestinationFiles="$(DebugModDirectory)\Info.json"
+          SkipUnchangedFiles="true" />
+    <Message Text="Debug mod deployed to $(DebugModDirectory)" Importance="high" />
+  </Target>
+
   <Target Name="CreateUmmRelease" AfterTargets="Build" Condition="'$(Configuration)' == 'Release' and '$(OS)' == 'Windows_NT'">
     <PropertyGroup>
       <UmmReleaseRoot>$(MSBuildProjectDirectory)\dist</UmmReleaseRoot>

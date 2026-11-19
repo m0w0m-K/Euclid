@@ -14,6 +14,8 @@ scripts\check_project.ps1
 dotnet build Euclid.csproj -c Debug
 ```
 
+On Windows, a successful Debug build copies `Euclid.dll` and `Info.json` to `$(GameDir)\Mods\Euclid`. Close ADOFAI before rebuilding so the loaded DLL can be replaced; restart the game to test changed C# code. To compile without deploying, pass `-p:SkipDebugDeploy=true`.
+
 For a packaged release, use `BUILD_RELEASE.cmd` (optionally pass the game directory as its first argument). The project checks each referenced game/UMM DLL before resolving references and creates a flat UMM ZIP under `dist/` with `Euclid.dll` and `Info.json` at its root.
 
 Source paths below are relative to the repository root. Start feature work at the owner of the behavior, then keep integration details at their existing boundary:
